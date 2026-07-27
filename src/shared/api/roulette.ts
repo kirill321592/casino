@@ -17,5 +17,3 @@ export interface RoundResult {
   number: number
   payouts: Record<string, number>
 }
-
-export const rouletteServerUrl = import.meta.env.VITE_ROULETTE_SERVER_URL ?? 'http://localhost:3000'

@@ -9,7 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseClass =
-  'rounded-control px-3.5 py-2.5 font-bold transition-[transform,opacity] duration-150 enabled:hover:-translate-y-px'
+  'rounded-control px-2.5 py-1.5 font-bold transition-[transform,opacity] duration-150 enabled:hover:-translate-y-px'
 
 const variantClass: Record<ButtonVariant, string> = {
   primary: 'flex-1 bg-gradient-to-b from-gold to-gold-deep text-gray-800',

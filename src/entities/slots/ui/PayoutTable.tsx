@@ -1,12 +1,15 @@
-import { SLOT_SYMBOLS } from '../model/symbols'
+import type { SlotsPaytable } from '@/shared/api/slots'
 
-/* Rows derive from the symbol definitions, so payout tweaks show up here automatically. */
-const rows = [...SLOT_SYMBOLS].sort((a, b) => b.payout3 - a.payout3)
+interface PayoutTableProps {
+  paytable: SlotsPaytable
+}
 
-const pairPayouts = SLOT_SYMBOLS.map((entry) => entry.payout2)
-const pairRange = `${Math.min(...pairPayouts)}–${Math.max(...pairPayouts)}`
+/* Rows come straight from the server paytable, so payout tweaks need no redeploy. */
+export function PayoutTable({ paytable }: PayoutTableProps) {
+  const rows = [...paytable.symbols].sort((a, b) => b.payout3 - a.payout3)
+  const pairPayouts = paytable.symbols.map((entry) => entry.payout2)
+  const pairRange = `${Math.min(...pairPayouts)}–${Math.max(...pairPayouts)}`
 
-export function PayoutTable() {
   return (
     <div>
       <span className="panel-label">Payouts (× bet)</span>

@@ -6,6 +6,7 @@ import { ResultOverlay } from '@/shared/ui/ResultOverlay'
 
 interface SlotsBoardProps {
   state: SlotsState
+  connected: boolean
   onSpin: () => void
   onSpinComplete: () => void
   onDismissResult: () => void
@@ -13,12 +14,14 @@ interface SlotsBoardProps {
 
 export function SlotsBoard({
   state,
+  connected,
   onSpin,
   onSpinComplete,
   onDismissResult,
 }: SlotsBoardProps) {
   const reelsRef = useRef<ComponentRef<typeof PixiSlots>>(null)
 
+  // Reels only arrive once the server has answered, so this waits for them.
   useEffect(() => {
     if (state.phase !== 'spinning' || state.pendingReels === null) return
     void reelsRef.current?.spinToReels(state.pendingReels).then(onSpinComplete)
@@ -31,6 +34,7 @@ export function SlotsBoard({
         bet={state.bet}
         spinning={state.phase === 'spinning'}
         canAfford={state.balance >= state.bet}
+        connected={connected}
         onSpin={onSpin}
       />
 

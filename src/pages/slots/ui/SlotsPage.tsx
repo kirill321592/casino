@@ -4,7 +4,8 @@ import { SlotsBoard } from '@/widgets/slots-board/ui/SlotsBoard'
 import { SlotsControls } from '@/widgets/slots-controls/ui/SlotsControls'
 
 export function SlotsPage({ onExit }: { onExit?: () => void }) {
-  const { state, spin, completeSpin, setBet, dismissResult } = useSpinSlots()
+  const { state, paytable, connected, error, spin, completeSpin, setBet, dismissResult } =
+    useSpinSlots()
 
   return (
     <div className="page-shell">
@@ -14,9 +15,15 @@ export function SlotsPage({ onExit }: { onExit?: () => void }) {
         balance={state.balance}
         onExit={onExit}
       />
+      {error && (
+        <p className="m-0 text-faint" role="alert">
+          {error}
+        </p>
+      )}
       <div className="game-grid">
         <SlotsBoard
           state={state}
+          connected={connected}
           onSpin={spin}
           onSpinComplete={completeSpin}
           onDismissResult={dismissResult}
@@ -24,6 +31,7 @@ export function SlotsPage({ onExit }: { onExit?: () => void }) {
         <SlotsControls
           bet={state.bet}
           disabled={state.phase === 'spinning'}
+          paytable={paytable}
           history={state.history}
           onSelectBet={setBet}
         />
