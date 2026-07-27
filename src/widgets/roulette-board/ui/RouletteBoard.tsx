@@ -16,7 +16,10 @@ export function RouletteBoard() {
 
   return (
     <section className="card relative flex items-center justify-center p-3 sm:p-5">
-      <PixiRoulette className="[filter:drop-shadow(0_1rem_2rem_rgb(0_0_0/0.35))]" />
+      <PixiRoulette
+        ref={wheelRef}
+        className="[filter:drop-shadow(0_1rem_2rem_rgb(0_0_0/0.35))]"
+      />
 
       {state.phase === 'result' && state.lastResult !== null && (
         <ResultOverlay

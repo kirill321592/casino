@@ -57,14 +57,26 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
       return { ...state, bets: [...state.bets, bet] }
     }
 
-    case 'ROUND_STATE':
+    case 'ROUND_STATE': {
+      const opensNewRound =
+        action.round.status === 'betting' && state.round?.id !== action.round.id
+
+      // The server opens the next round 3s after the result while the wheel
+      // animates for 3.5s, so a spin in flight must survive this — SPIN_COMPLETE
+      // settles it. Clearing here drops the payout and result every round.
+      if (!opensNewRound || state.phase === 'spinning') {
+        return { ...state, round: action.round }
+      }
+
       return {
         ...state,
         round: action.round,
-        ...(action.round.status === 'betting' && state.round?.id !== action.round.id
-          ? { phase: 'idle', bets: [], pendingResult: null, pendingPayout: 0 }
-          : {}),
+        phase: 'idle',
+        bets: [],
+        pendingResult: null,
+        pendingPayout: 0,
       }
+    }
 
     case 'CLEAR_BETS':
       if (state.phase === 'spinning') return state
