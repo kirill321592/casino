@@ -1,8 +1,8 @@
-import { useGame } from '@/app/providers/GameProvider'
+import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
 import { Button } from '@/shared/ui/Button'
 
 export function ClearBetsButton() {
-  const { state, dispatch } = useGame()
+  const { state, dispatch } = useRoulette()
   const disabled = state.phase === 'spinning' || state.bets.length === 0
 
   return (

@@ -1,345 +1,83 @@
-:root {
-  color: #f8fafc;
-  background: #0b1220;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import 'tailwindcss';
+
+/*
+ * Design tokens — the single source of truth for the game's palette.
+ * Change a value here and it propagates through every Tailwind utility
+ * (bg-surface, text-gold, border-hairline, …) across the whole app.
+ */
+@theme {
+  --color-ink: #0b1220; /* page background */
+  --color-surface: #0f172a; /* raised panels/cards (slate-900) */
+
+  --color-gold: #fbbf24;
+  --color-gold-deep: #d97706;
+  --color-gold-soft: #fde68a;
+
+  --color-table-green: #0d7a4a;
+  --color-table-red: #b91c1c;
+  --color-table-black: #111827;
+
+  --color-hairline: #334155; /* borders/outlines (slate-700) */
+  --color-muted: #94a3b8; /* secondary text (slate-400) */
+  --color-faint: #64748b; /* tertiary/placeholder text (slate-500) */
+
+  --radius-control: 0.625rem; /* 10px — buttons, chips, number cells */
+
+  --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(201, 162, 39, 0.12), transparent 35%),
-    #0b1220;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.game-page {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.game-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.game-header h1 {
-  margin: 0;
-  font-size: 2rem;
-}
-
-.game-subtitle {
-  margin: 4px 0 0;
-  color: #94a3b8;
-}
-
-.balance-display {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 12px;
-  padding: 12px 16px;
-  min-width: 140px;
-}
-
-.balance-display strong {
-  display: block;
-  font-size: 1.5rem;
-  color: #fbbf24;
-}
-
-.panel-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-
-.result-history {
-  margin-bottom: 20px;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.history-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.history-empty {
-  color: #64748b;
-}
-
-.history-pill {
-  min-width: 36px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.history-green {
-  background: #0d7a4a;
-}
-
-.history-red {
-  background: #b91c1c;
-}
-
-.history-black {
-  background: #1e293b;
-  border: 1px solid #334155;
-}
-
-.game-board {
-  display: grid;
-  grid-template-columns: minmax(280px, 520px) minmax(280px, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.wheel-section {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  border-radius: 24px;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.wheel-canvas {
-  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.35));
-}
-
-.betting-board {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 20px;
-  border-radius: 24px;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.chip-row,
-.color-bet-row,
-.board-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  min-width: 56px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 2px solid rgba(251, 191, 36, 0.35);
-  background: radial-gradient(circle at 30% 30%, #fde68a, #d97706);
-  color: #1f2937;
-  font-weight: 700;
-}
-
-.chip-active {
-  outline: 3px solid #fbbf24;
-  outline-offset: 2px;
-}
-
-.outside-bet,
-.number-cell,
-.btn {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.outside-bet:hover:not(:disabled),
-.number-cell:hover:not(:disabled),
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.outside-bet {
-  flex: 1 1 calc(50% - 4px);
-  background: #1e293b;
-  color: #f8fafc;
-  font-weight: 600;
-}
-
-.outside-red {
-  background: #b91c1c;
-}
-
-.outside-black {
-  background: #111827;
-  border: 1px solid #334155;
-}
-
-.number-grid-inner {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: 64px;
-  gap: 6px;
-}
-
-.number-cell {
-  font-weight: 700;
-  color: white;
-}
-
-.number-green {
-  background: #0d7a4a;
-  grid-column: span 6;
-}
-
-.number-red {
-  background: #b91c1c;
-}
-
-.number-black {
-  background: #111827;
-  border: 1px solid #334155;
-}
-
-.active-bets {
-  padding-top: 4px;
-}
-
-.empty-bets {
-  margin: 0;
-  color: #64748b;
-}
-
-.bet-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.bet-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.bet-chip-neutral {
-  background: #334155;
-}
-
-.bet-chip-red {
-  background: #b91c1c;
-}
-
-.bet-chip-black {
-  background: #111827;
-  border: 1px solid #475569;
-}
-
-.bet-chip-green {
-  background: #0d7a4a;
-}
-
-.stake-total {
-  margin: 12px 0 0;
-  color: #cbd5e1;
-  font-weight: 600;
-}
-
-.board-actions {
-  margin-top: auto;
-}
-
-.btn {
-  font-weight: 700;
-}
-
-.btn-primary {
-  flex: 1;
-  background: linear-gradient(180deg, #fbbf24, #d97706);
-  color: #1f2937;
-}
-
-.btn-secondary {
-  background: #334155;
-  color: #f8fafc;
-}
-
-.btn-danger {
-  background: #991b1b;
-  color: #fff;
-}
-
-.spin-button {
-  min-height: 48px;
-  font-size: 1rem;
-}
-
-.result-banner {
-  position: absolute;
-  inset: auto 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  text-align: center;
-}
-
-.result-banner strong {
-  font-size: 2rem;
-}
-
-.result-dismiss {
-  margin-top: 4px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 8px;
-  background: #334155;
-  color: #f8fafc;
-}
-
-@media (max-width: 900px) {
-  .game-board {
-    grid-template-columns: 1fr;
+@layer base {
+  :root {
+    color-scheme: dark;
+    color: theme(--color-slate-50);
+    background: var(--color-ink);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .game-header {
-    flex-direction: column;
+  body {
+    margin: 0;
+    min-width: 20rem;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top, rgb(201 162 39 / 0.12), transparent 35%),
+      var(--color-ink);
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+/*
+ * Reusable component classes for patterns repeated across many components.
+ * Keeping these DRY here (rather than copy-pasting utility strings) is what
+ * lets the design scale — restyle every card or label in one place.
+ */
+@layer components {
+  .card {
+    @apply rounded-3xl border border-slate-400/20 bg-surface/85;
+  }
+
+  .panel-label {
+    @apply mb-2 block text-xs uppercase tracking-[0.08em] text-muted;
+  }
+
+  /* Outer container shared by every page. */
+  .page-shell {
+    @apply mx-auto max-w-[73.75rem] p-4 sm:p-6;
+  }
+
+  /* Board on the left, controls on the right; stacks below 900px. */
+  .game-grid {
+    @apply grid grid-cols-[minmax(17.5rem,32.5rem)_minmax(17.5rem,1fr)] items-start gap-4 max-[900px]:grid-cols-1 sm:gap-6;
   }
 }

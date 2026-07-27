@@ -1,24 +1,23 @@
 import { CHIP_VALUES } from '@/shared/config/constants'
-import { useGame } from '@/app/providers/GameProvider'
+import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { ChipButton } from '@/shared/ui/ChipButton'
 
 export function ChipSelector() {
-  const { state, dispatch } = useGame()
+  const { state, dispatch } = useRoulette()
   const disabled = state.phase === 'spinning'
 
   return (
-    <div className="chip-selector">
+    <div>
       <span className="panel-label">Chips</span>
-      <div className="chip-row">
+      <div className="flex flex-wrap gap-2">
         {CHIP_VALUES.map((chip) => (
-          <button
+          <ChipButton
             key={chip}
-            type="button"
-            className={`chip ${state.selectedChip === chip ? 'chip-active' : ''}`}
+            value={chip}
+            selected={state.selectedChip === chip}
             disabled={disabled}
-            onClick={() => dispatch({ type: 'SET_CHIP', chip })}
-          >
-            ${chip}
-          </button>
+            onSelect={(value) => dispatch({ type: 'SET_CHIP', chip: value })}
+          />
         ))}
       </div>
     </div>

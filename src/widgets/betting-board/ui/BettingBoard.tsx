@@ -1,35 +1,36 @@
-import { useGame } from '@/app/providers/GameProvider'
-import { calcTotalStake } from '@/entities/bet/model/payouts'
-import { BetChip } from '@/entities/bet/ui/BetChip'
+import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { calcTotalStake } from '@/entities/roulette/model/payouts'
+import { BetChip } from '@/entities/roulette/ui/BetChip'
 import { ChipSelector } from '@/features/place-bet/ui/ChipSelector'
 import { ColorBetButtons } from '@/features/place-bet/ui/ColorBetButtons'
 import { NumberGrid } from '@/features/place-bet/ui/NumberGrid'
 import { ClearBetsButton } from '@/features/clear-bets/ui/ClearBetsButton'
 
 export function BettingBoard() {
-  const { state } = useGame()
+  const { state } = useRoulette()
   const totalStake = calcTotalStake(state.bets)
 
   return (
-    <aside className="betting-board">
+    <aside className="card flex flex-col gap-[1.125rem] p-4 sm:p-5">
       <ChipSelector />
       <ColorBetButtons />
       <NumberGrid />
-
-      <div className="active-bets">
+      <div className="pt-1">
         <span className="panel-label">Active bets</span>
         {state.bets.length === 0 ? (
-          <p className="empty-bets">Place a bet to spin.</p>
+          <p className="m-0 text-faint">Place a bet to spin.</p>
         ) : (
-          <div className="bet-list">
+          <div className="flex flex-wrap gap-2">
             {state.bets.map((bet) => (
               <BetChip key={bet.id} bet={bet} />
             ))}
           </div>
         )}
-        <p className="stake-total">Total stake: ${totalStake}</p>
+        <p className="mt-3 mb-0 font-semibold text-slate-300">
+          Total stake: ${totalStake}
+        </p>
       </div>
-      <div className="board-actions">
+      <div className="mt-auto flex flex-wrap gap-2">
         <ClearBetsButton />
       </div>
     </aside>
