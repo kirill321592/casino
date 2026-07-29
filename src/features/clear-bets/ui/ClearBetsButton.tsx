@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import { Button } from '@/shared/ui/Button'
 
 export function ClearBetsButton() {

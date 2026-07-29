@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import { GameHeader } from '@/widgets/game-header/ui/GameHeader'
 import { BettingBoard } from '@/widgets/betting-board/ui/BettingBoard'
 import { RouletteBoard } from '@/widgets/roulette-board/ui/RouletteBoard'

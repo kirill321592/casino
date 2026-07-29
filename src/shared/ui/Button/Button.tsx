@@ -17,18 +17,9 @@ const variantClass: Record<ButtonVariant, string> = {
   danger: 'bg-red-800 text-white',
 }
 
-export function Button({
-  variant = 'primary',
-  className,
-  children,
-  ...props
-}: ButtonProps) {
+export function Button({ variant = 'primary', className, children, ...props }: ButtonProps) {
   return (
-    <button
-      type="button"
-      className={cn(baseClass, variantClass[variant], className)}
-      {...props}
-    >
+    <button type="button" className={cn(baseClass, variantClass[variant], className)} {...props}>
       {children}
     </button>
   )

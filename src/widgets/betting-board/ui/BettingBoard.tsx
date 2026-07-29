@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import { calcTotalStake } from '@/entities/roulette/model/payouts'
 import { BetChip } from '@/entities/roulette/ui/BetChip'
 import { ChipSelector } from '@/features/place-bet/ui/ChipSelector'
@@ -26,9 +26,7 @@ export function BettingBoard() {
             ))}
           </div>
         )}
-        <p className="mt-3 mb-0 font-semibold text-slate-300">
-          Total stake: ${totalStake}
-        </p>
+        <p className="mt-3 mb-0 font-semibold text-slate-300">Total stake: ${totalStake}</p>
       </div>
       <div className="mt-auto flex flex-wrap gap-2">
         <ClearBetsButton />

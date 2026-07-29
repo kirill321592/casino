@@ -1,5 +1,5 @@
 import { CHIP_VALUES } from '@/shared/config/constants'
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import { ChipButton } from '@/shared/ui/ChipButton'
 
 export function ChipSelector() {

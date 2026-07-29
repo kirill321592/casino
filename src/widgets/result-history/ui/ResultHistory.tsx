@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import { getPocketColor } from '@/entities/roulette/model/wheelLayout'
 import { cn } from '@/shared/lib/cn'
 

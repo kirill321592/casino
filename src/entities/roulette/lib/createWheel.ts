@@ -1,10 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js'
-import {
-  getPocketColor,
-  POCKET_COUNT,
-  SEGMENT_ANGLE,
-  WHEEL_ORDER,
-} from '../model/wheelLayout'
+import { getPocketColor, POCKET_COUNT, SEGMENT_ANGLE, WHEEL_ORDER } from '../model/wheelLayout'
 
 const COLORS = {
   green: 0x0d7a4a,
@@ -61,10 +56,7 @@ function drawPockets(wheel: Container): void {
     const color = COLORS[colorKey]
 
     const segment = new Graphics()
-    segment.moveTo(
-      Math.cos(startAngle) * INNER_RADIUS,
-      Math.sin(startAngle) * INNER_RADIUS,
-    )
+    segment.moveTo(Math.cos(startAngle) * INNER_RADIUS, Math.sin(startAngle) * INNER_RADIUS)
     segment.arc(0, 0, OUTER_RADIUS, startAngle, endAngle)
     segment.arc(0, 0, INNER_RADIUS, endAngle, startAngle, true)
     segment.closePath()

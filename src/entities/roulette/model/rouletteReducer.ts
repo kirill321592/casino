@@ -58,8 +58,7 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
     }
 
     case 'ROUND_STATE': {
-      const opensNewRound =
-        action.round.status === 'betting' && state.round?.id !== action.round.id
+      const opensNewRound = action.round.status === 'betting' && state.round?.id !== action.round.id
 
       // The server opens the next round 3s after the result while the wheel
       // animates for 3.5s, so a spin in flight must survive this — SPIN_COMPLETE

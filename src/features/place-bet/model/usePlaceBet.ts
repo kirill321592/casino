@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/RouletteProvider'
+import { useRoulette } from '@/entities/roulette/model/useRoulette'
 import type { BetType } from '@/entities/roulette/model/types'
 
 export function usePlaceBet() {

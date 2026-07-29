@@ -2,10 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { gameServerUrl, type GameError } from '@/shared/api/gameServer'
 import type { SlotsPaytable, SlotsSpinResult } from '@/shared/api/slots'
-import {
-  createInitialSlotsState,
-  slotsReducer,
-} from '@/entities/slots/model/slotsReducer'
+import { createInitialSlotsState, slotsReducer } from '@/entities/slots/model/slotsReducer'
 import { FALLBACK_PAYTABLE } from '@/entities/slots/model/symbols'
 
 export function useSpinSlots() {
@@ -26,7 +23,10 @@ export function useSpinSlots() {
       dispatch({ type: 'SPIN_FAILED' })
     }
 
-    socket.on('connect', () => { setConnected(true); setError(null) })
+    socket.on('connect', () => {
+      setConnected(true)
+      setError(null)
+    })
     socket.on('disconnect', () => fail('Connection to the slots server was lost.'))
     socket.on('connect_error', () => fail('Unable to connect to the slots server.'))
     socket.on('slots:paytable', (next: SlotsPaytable) => setPaytable(next))
@@ -38,7 +38,10 @@ export function useSpinSlots() {
       dispatch({ type: 'SPIN_FAILED' })
     })
 
-    return () => { socket.disconnect(); socketRef.current = null }
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
   }, [])
 
   const spin = () => {

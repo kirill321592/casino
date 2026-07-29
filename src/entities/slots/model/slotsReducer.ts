@@ -1,4 +1,9 @@
-import { STARTING_BALANCE, CHIP_VALUES, DEFAULT_CHIP, HISTORY_LENGTH } from '@/shared/config/constants'
+import {
+  STARTING_BALANCE,
+  CHIP_VALUES,
+  DEFAULT_CHIP,
+  HISTORY_LENGTH,
+} from '@/shared/config/constants'
 import { deductBalance, creditBalance } from '@/entities/player/model/balance'
 
 export type SlotsPhase = 'idle' | 'spinning' | 'result'
