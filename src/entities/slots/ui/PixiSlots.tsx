@@ -1,16 +1,18 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Application } from 'pixi.js'
 import { cn } from '@/shared/lib/cn'
-import { animateReels, SLOTS_SPIN_DURATION_MS } from '../lib/animateReels'
+import { animateReels, celebrateWin, SLOTS_SPIN_DURATION_MS } from '../lib/animateReels'
 import {
   createSlotsScene,
   SLOTS_VIEW_HEIGHT,
   SLOTS_VIEW_WIDTH,
   type SlotsScene,
 } from '../lib/createReels'
+import { getWinningLine } from '../model/winningLine'
 
 export interface PixiSlotsHandle {
-  spinToReels: (symbols: string[]) => Promise<void>
+  /* Resolves once the reels have stopped and any winning line has flashed. */
+  spinToReels: (symbols: string[], won: boolean) => Promise<void>
 }
 
 interface PixiSlotsProps {
@@ -28,11 +30,12 @@ export const PixiSlots = forwardRef<PixiSlotsHandle, PixiSlotsProps>(function Pi
   const initialReelsRef = useRef(initialReels)
 
   useImperativeHandle(ref, () => ({
-    spinToReels: async (symbols: string[]) => {
+    spinToReels: async (symbols: string[], won: boolean) => {
       const app = appRef.current
       const scene = sceneRef.current
       if (!app || !scene) return
       await animateReels(app.ticker, scene, symbols, SLOTS_SPIN_DURATION_MS)
+      if (won && appRef.current) await celebrateWin(app.ticker, scene, getWinningLine(symbols))
     },
   }))
 

@@ -1,10 +1,33 @@
 import type { Ticker } from 'pixi.js'
-import { easeOutCubic } from '@/shared/lib/easing'
-import { CELL_HEIGHT, STRIP, type SlotsScene } from './createReels'
+import { easeOutBack, easeOutQuart } from '@/shared/lib/easing'
+import {
+  getPaylineSymbol,
+  setReelBlur,
+  setReelPosition,
+  STRIP,
+  type Reel,
+  type SlotsScene,
+} from './createReels'
 
-export const SLOTS_SPIN_DURATION_MS = 1400
-const REEL_STAGGER_MS = 350
-const BASE_LOOPS = 3
+export const SLOTS_SPIN_DURATION_MS = 1500
+export const SLOTS_CELEBRATION_MS = 900
+
+const REEL_STAGGER_MS = 420
+/* Extra time on the last reel when the first two already match. */
+const ANTICIPATION_MS = 850
+const SETTLE_MS = 260
+const OVERSHOOT_ROWS = 0.38
+const BASE_LOOPS = 4
+
+interface ReelPlan {
+  reel: Reel
+  start: number
+  target: number
+  distance: number
+  spinMs: number
+  teasing: boolean
+  travelled: number
+}
 
 export function animateReels(
   ticker: Ticker,
@@ -12,17 +35,27 @@ export function animateReels(
   targetSymbols: string[],
   durationMs: number,
 ): Promise<void> {
-  const plans = scene.reels.map((reel, i) => {
+  const lastIndex = scene.reels.length - 1
+  // Two matching reels leave the last one deciding the payout, so drag it out.
+  const teased =
+    lastIndex > 0 &&
+    targetSymbols.slice(0, lastIndex).every((symbol) => symbol === targetSymbols[0])
+
+  const plans: ReelPlan[] = scene.reels.map((reel, i) => {
     const target = Math.max(0, STRIP.indexOf(targetSymbols[i] ?? STRIP[0]!))
     const start = reel.position % STRIP.length
     const forward = (((target - start) % STRIP.length) + STRIP.length) % STRIP.length
+    const teasing = teased && i === lastIndex
+
     return {
       reel,
       start,
       target,
       // Later reels loop once more and run longer, so they stop one by one.
       distance: forward + (BASE_LOOPS + i) * STRIP.length,
-      duration: durationMs + i * REEL_STAGGER_MS,
+      spinMs: durationMs + i * REEL_STAGGER_MS + (teasing ? ANTICIPATION_MS : 0),
+      teasing,
+      travelled: 0,
     }
   })
 
@@ -34,18 +67,72 @@ export function animateReels(
       let allDone = true
 
       for (const plan of plans) {
-        const rawT = Math.min(elapsed / plan.duration, 1)
-        const position = (plan.start + plan.distance * easeOutCubic(rawT)) % STRIP.length
-        plan.reel.position = position
-        plan.reel.strip.y = -position * CELL_HEIGHT
-        if (rawT < 1) allDone = false
+        const settled = elapsed >= plan.spinMs + SETTLE_MS
+        const travel = settled ? plan.distance : travelAt(plan, elapsed)
+
+        setReelPosition(plan.reel, (plan.start + travel) % STRIP.length)
+        setReelBlur(plan.reel, Math.abs(travel - plan.travelled))
+        plan.reel.glow.alpha = isAnticipating(plan, elapsed, settled)
+          ? anticipationGlow(elapsed)
+          : 0
+        plan.travelled = travel
+
+        if (!settled) allDone = false
       }
 
       if (allDone) {
         for (const plan of plans) {
-          plan.reel.position = plan.target
-          plan.reel.strip.y = -plan.target * CELL_HEIGHT
+          setReelPosition(plan.reel, plan.target)
+          setReelBlur(plan.reel, 0)
         }
+        ticker.remove(tick)
+        resolve()
+      }
+    }
+
+    ticker.add(tick)
+  })
+}
+
+/** Runs past the target, then springs back onto it — a reel dropping into its notch. */
+function travelAt(plan: ReelPlan, elapsed: number): number {
+  if (elapsed < plan.spinMs) {
+    return (plan.distance + OVERSHOOT_ROWS) * easeOutQuart(elapsed / plan.spinMs)
+  }
+  return plan.distance + OVERSHOOT_ROWS * (1 - easeOutBack((elapsed - plan.spinMs) / SETTLE_MS))
+}
+
+/* Only from the moment the reel would normally have stopped — that is the tense part. */
+function isAnticipating(plan: ReelPlan, elapsed: number, settled: boolean): boolean {
+  return plan.teasing && !settled && elapsed > plan.spinMs - ANTICIPATION_MS
+}
+
+function anticipationGlow(elapsed: number): number {
+  return 0.3 + 0.45 * Math.sin(elapsed / 90) ** 2
+}
+
+/** Flashes the symbols that paid. Cosmetic only — the balance is already settled. */
+export function celebrateWin(
+  ticker: Ticker,
+  scene: SlotsScene,
+  reelIndexes: number[],
+): Promise<void> {
+  const winners = reelIndexes.flatMap((index) => scene.reels[index] ?? [])
+  if (winners.length === 0) return Promise.resolve()
+
+  const startTime = performance.now()
+
+  return new Promise((resolve) => {
+    const tick = () => {
+      const t = Math.min((performance.now() - startTime) / SLOTS_CELEBRATION_MS, 1)
+      const pulse = t < 1 ? Math.sin(t * Math.PI * 3) ** 2 : 0
+
+      for (const reel of winners) {
+        reel.winGlow.alpha = 0.5 * pulse
+        getPaylineSymbol(reel)?.scale.set(1 + 0.2 * pulse)
+      }
+
+      if (t >= 1) {
         ticker.remove(tick)
         resolve()
       }

@@ -6,26 +6,20 @@ import { ResultOverlay } from '@/shared/ui/ResultOverlay'
 
 interface SlotsBoardProps {
   state: SlotsState
-  connected: boolean
   onSpin: () => void
   onSpinComplete: () => void
   onDismissResult: () => void
 }
 
-export function SlotsBoard({
-  state,
-  connected,
-  onSpin,
-  onSpinComplete,
-  onDismissResult,
-}: SlotsBoardProps) {
+export function SlotsBoard({ state, onSpin, onSpinComplete, onDismissResult }: SlotsBoardProps) {
   const reelsRef = useRef<ComponentRef<typeof PixiSlots>>(null)
 
   // Reels only arrive once the server has answered, so this waits for them.
   useEffect(() => {
     if (state.phase !== 'spinning' || state.pendingReels === null) return
-    void reelsRef.current?.spinToReels(state.pendingReels).then(onSpinComplete)
-  }, [onSpinComplete, state.pendingReels, state.phase])
+    const won = state.pendingWinnings > 0
+    void reelsRef.current?.spinToReels(state.pendingReels, won).then(onSpinComplete)
+  }, [onSpinComplete, state.pendingReels, state.pendingWinnings, state.phase])
 
   return (
     <section className="card relative flex flex-col items-center justify-center gap-5 p-6 sm:p-8">
@@ -34,7 +28,6 @@ export function SlotsBoard({
         bet={state.bet}
         spinning={state.phase === 'spinning'}
         canAfford={state.balance >= state.bet}
-        connected={connected}
         onSpin={onSpin}
       />
 

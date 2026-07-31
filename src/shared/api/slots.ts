@@ -1,10 +1,12 @@
+import { getJson, postJson } from './http'
+
 export interface SlotsPaytableEntry {
   symbol: string
   payout3: number
   payout2: number
 }
 
-/** Sent by the server on connect; the client never decides odds or payouts. */
+/** Fetched once for display; the server never lets the client decide odds or payouts. */
 export interface SlotsPaytable {
   reelCount: number
   symbols: SlotsPaytableEntry[]
@@ -15,4 +17,13 @@ export interface SlotsSpinResult {
   bet: number
   multiplier: number
   winnings: number
+}
+
+export function fetchPaytable(signal: AbortSignal): Promise<SlotsPaytable> {
+  return getJson<SlotsPaytable>('/slots/paytable', signal)
+}
+
+/* One spin, one round trip — nothing here needs a standing connection. */
+export function requestSpin(bet: number): Promise<SlotsSpinResult> {
+  return postJson<SlotsSpinResult>('/slots/spin', { bet })
 }

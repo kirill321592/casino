@@ -4,8 +4,7 @@ import { SlotsBoard } from '@/widgets/slots-board/ui/SlotsBoard'
 import { SlotsControls } from '@/widgets/slots-controls/ui/SlotsControls'
 
 export function SlotsPage({ onExit }: { onExit?: () => void }) {
-  const { state, paytable, connected, error, spin, completeSpin, setBet, dismissResult } =
-    useSpinSlots()
+  const { state, paytable, error, spin, completeSpin, setBet, dismissResult } = useSpinSlots()
 
   return (
     <div className="page-shell">
@@ -23,7 +22,6 @@ export function SlotsPage({ onExit }: { onExit?: () => void }) {
       <div className="game-grid">
         <SlotsBoard
           state={state}
-          connected={connected}
           onSpin={spin}
           onSpinComplete={completeSpin}
           onDismissResult={dismissResult}
