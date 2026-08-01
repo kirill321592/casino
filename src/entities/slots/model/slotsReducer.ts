@@ -1,9 +1,4 @@
-import {
-  STARTING_BALANCE,
-  CHIP_VALUES,
-  DEFAULT_CHIP,
-  HISTORY_LENGTH,
-} from '@/shared/config/constants'
+import { CHIP_VALUES, DEFAULT_CHIP, HISTORY_LENGTH } from '@/shared/config/constants'
 import { deductBalance, creditBalance } from '@/entities/player/model/balance'
 
 export type SlotsPhase = 'idle' | 'spinning' | 'result'
@@ -15,11 +10,13 @@ export interface SlotsSpinRecord {
 
 export interface SlotsState {
   phase: SlotsPhase
+  /** On-screen figure: it moves optimistically, then settles on the server's. */
   balance: number
   bet: number
   reels: string[]
   pendingReels: string[] | null
   pendingWinnings: number
+  pendingBalance: number | null
   lastWinnings: number
   history: SlotsSpinRecord[]
 }
@@ -27,19 +24,20 @@ export interface SlotsState {
 export type SlotsAction =
   | { type: 'SET_BET'; bet: number }
   | { type: 'SPIN_REQUEST' }
-  | { type: 'SPIN_RESULT'; reels: string[]; winnings: number }
+  | { type: 'SPIN_RESULT'; reels: string[]; winnings: number; balance: number }
   | { type: 'SPIN_FAILED' }
   | { type: 'SPIN_COMPLETE' }
   | { type: 'DISMISS_RESULT' }
 
-export function createInitialSlotsState(): SlotsState {
+export function createInitialSlotsState(balance: number): SlotsState {
   return {
     phase: 'idle',
-    balance: STARTING_BALANCE,
+    balance,
     bet: DEFAULT_CHIP,
     reels: ['🍒', '🍋', '🔔'],
     pendingReels: null,
     pendingWinnings: 0,
+    pendingBalance: null,
     lastWinnings: 0,
     history: [],
   }
@@ -57,6 +55,8 @@ export function slotsReducer(state: SlotsState, action: SlotsAction): SlotsState
       if (!CHIP_VALUES.includes(action.bet as (typeof CHIP_VALUES)[number])) return state
       return { ...state, bet: action.bet }
 
+    /* Deducted locally so the stake leaves the moment the lever is pulled; the
+     * server does the same and its answer is what the balance settles on. */
     case 'SPIN_REQUEST': {
       if (state.phase === 'spinning') return state
       if (state.balance < state.bet) return state
@@ -66,13 +66,19 @@ export function slotsReducer(state: SlotsState, action: SlotsAction): SlotsState
         balance: deductBalance(state.balance, state.bet),
         pendingReels: null,
         pendingWinnings: 0,
+        pendingBalance: null,
         lastWinnings: 0,
       }
     }
 
     case 'SPIN_RESULT': {
       if (!isAwaitingResult(state)) return state
-      return { ...state, pendingReels: action.reels, pendingWinnings: action.winnings }
+      return {
+        ...state,
+        pendingReels: action.reels,
+        pendingWinnings: action.winnings,
+        pendingBalance: action.balance,
+      }
     }
 
     // The spin never reached the server, so give the stake back.
@@ -89,7 +95,8 @@ export function slotsReducer(state: SlotsState, action: SlotsAction): SlotsState
         reels,
         pendingReels: null,
         pendingWinnings: 0,
-        balance: creditBalance(state.balance, winnings),
+        pendingBalance: null,
+        balance: state.pendingBalance ?? creditBalance(state.balance, winnings),
         lastWinnings: winnings,
         history: [{ reels, winnings }, ...state.history].slice(0, HISTORY_LENGTH),
       }

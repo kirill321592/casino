@@ -1,13 +1,15 @@
-import { HISTORY_LENGTH, STARTING_BALANCE, DEFAULT_CHIP } from '@/shared/config/constants'
-import { creditBalance, deductBalance } from '@/entities/player/model/balance'
+import { HISTORY_LENGTH, DEFAULT_CHIP } from '@/shared/config/constants'
 import type { RoundState } from '@/shared/api/roulette'
-import { calcTotalStake } from './payouts'
 import type { Bet } from './types'
 
 export type RoulettePhase = 'idle' | 'spinning' | 'result'
 
 export interface RouletteState {
   phase: RoulettePhase
+  /**
+   * What the player is shown. The server owns the real figure; this one only
+   * lags it while the wheel is still turning.
+   */
   balance: number
   bets: Bet[]
   selectedChip: number
@@ -16,24 +18,26 @@ export interface RouletteState {
   history: number[]
   pendingResult: number | null
   pendingPayout: number
+  pendingBalance: number | null
   round: RoundState | null
 }
 
 export type RouletteAction =
   | { type: 'SET_CHIP'; chip: number }
   | { type: 'CLEAR_BETS' }
-  | { type: 'BET_ACCEPTED'; bet: Omit<Bet, 'id'> }
+  | { type: 'BET_ACCEPTED'; bet: Omit<Bet, 'id'>; balance: number }
+  | { type: 'BALANCE_SYNC'; balance: number }
   | { type: 'ROUND_STATE'; round: RoundState }
-  | { type: 'ROUND_RESULT'; winningNumber: number; payout: number }
+  | { type: 'ROUND_RESULT'; winningNumber: number; payout: number; balance: number }
   | { type: 'SPIN_COMPLETE' }
   | { type: 'DISMISS_RESULT' }
 
 let betIdCounter = 0
 
-export function createInitialRouletteState(): RouletteState {
+export function createInitialRouletteState(balance: number): RouletteState {
   return {
     phase: 'idle',
-    balance: STARTING_BALANCE,
+    balance,
     bets: [],
     selectedChip: DEFAULT_CHIP,
     lastResult: null,
@@ -41,6 +45,7 @@ export function createInitialRouletteState(): RouletteState {
     history: [],
     pendingResult: null,
     pendingPayout: 0,
+    pendingBalance: null,
     round: null,
   }
 }
@@ -54,8 +59,14 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
     case 'BET_ACCEPTED': {
       if (state.phase === 'spinning') return state
       const bet: Bet = { ...action.bet, id: `bet-${++betIdCounter}` }
-      return { ...state, bets: [...state.bets, bet] }
+      // The stake left the balance the moment the server took the bet.
+      return { ...state, bets: [...state.bets, bet], balance: action.balance }
     }
+
+    /* A reconnect re-states the balance; mid-spin it would spoil the reveal. */
+    case 'BALANCE_SYNC':
+      if (state.phase === 'spinning') return state
+      return { ...state, balance: action.balance }
 
     case 'ROUND_STATE': {
       const opensNewRound = action.round.status === 'betting' && state.round?.id !== action.round.id
@@ -74,6 +85,7 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
         bets: [],
         pendingResult: null,
         pendingPayout: 0,
+        pendingBalance: null,
       }
     }
 
@@ -84,14 +96,14 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
     case 'ROUND_RESULT': {
       if (state.phase !== 'idle' && state.phase !== 'result') return state
 
-      const stake = calcTotalStake(state.bets)
-
+      // Winnings are already in the account; the balance on screen waits for the
+      // wheel so the player sees the number land before it moves.
       return {
         ...state,
         phase: 'spinning',
-        balance: deductBalance(state.balance, stake),
         pendingResult: action.winningNumber,
         pendingPayout: action.payout,
+        pendingBalance: action.balance,
         lastWinnings: 0,
       }
     }
@@ -102,13 +114,14 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
       return {
         ...state,
         phase: 'result',
-        balance: creditBalance(state.balance, state.pendingPayout),
+        balance: state.pendingBalance ?? state.balance,
         bets: [],
         lastResult: state.pendingResult,
         lastWinnings: state.pendingPayout,
         history: [state.pendingResult, ...state.history].slice(0, HISTORY_LENGTH),
         pendingResult: null,
         pendingPayout: 0,
+        pendingBalance: null,
       }
     }
 

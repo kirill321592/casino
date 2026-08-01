@@ -1,4 +1,8 @@
 import { gameServerUrl, type GameError } from './gameServer'
+import { notifyUnauthorized } from './unauthorized'
+
+const NO_CONTENT = 204
+const UNAUTHORIZED = 401
 
 export function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   return request<T>(path, { signal })
@@ -26,8 +30,11 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     throw new Error('Unable to reach the game server.', { cause })
   }
 
+  if (response.status === UNAUTHORIZED) notifyUnauthorized()
   if (!response.ok) throw new Error(await readErrorMessage(response))
-  return (await response.json()) as T
+
+  // Signing out answers 204: there is no body to parse.
+  return (response.status === NO_CONTENT ? undefined : await response.json()) as T
 }
 
 /* The server reports failures as a GameError body; anything else is just a status. */

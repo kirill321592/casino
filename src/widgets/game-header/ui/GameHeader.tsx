@@ -1,4 +1,5 @@
-import { formatMoney } from '@/shared/lib/formatMoney'
+import { BalanceCard } from '@/entities/session/ui/BalanceCard'
+import { SignOutButton } from '@/features/sign-out/ui/SignOutButton'
 
 interface GameHeaderProps {
   title: string
@@ -23,9 +24,9 @@ export function GameHeader({ title, subtitle, balance, onExit }: GameHeaderProps
         <h1 className="m-0 text-2xl sm:text-[2rem]">{title}</h1>
         <p className="mt-1 text-muted">{subtitle}</p>
       </div>
-      <div className="min-w-[8.75rem] rounded-xl border border-slate-400/25 bg-surface/90 px-4 py-3">
-        <span className="panel-label">Balance</span>
-        <strong className="block text-2xl text-gold">{formatMoney(balance)}</strong>
+      <div className="flex items-center gap-4">
+        <BalanceCard balance={balance} />
+        <SignOutButton />
       </div>
     </header>
   )

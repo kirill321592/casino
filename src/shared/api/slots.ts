@@ -17,6 +17,8 @@ export interface SlotsSpinResult {
   bet: number
   multiplier: number
   winnings: number
+  /** The balance after the stake and any winnings — the figure that counts. */
+  balance: number
 }
 
 export function fetchPaytable(signal: AbortSignal): Promise<SlotsPaytable> {

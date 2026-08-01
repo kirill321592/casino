@@ -1,3 +1,6 @@
+import { useAuthUser } from '@/entities/session/model/useSession'
+import { BalanceCard } from '@/entities/session/ui/BalanceCard'
+import { SignOutButton } from '@/features/sign-out/ui/SignOutButton'
 import { cn } from '@/shared/lib/cn'
 
 export type GameId = 'roulette' | 'slots'
@@ -31,8 +34,15 @@ const games: GameCard[] = [
 ]
 
 export function HomePage({ onSelect }: { onSelect: (game: GameId) => void }) {
+  const user = useAuthUser()
+
   return (
     <div className="page-shell">
+      <div className="mb-6 flex items-center justify-end gap-4">
+        <BalanceCard balance={user.balance} />
+        <SignOutButton />
+      </div>
+
       <header className="mb-8 text-center">
         <h1 className="m-0 text-3xl sm:text-[2.5rem]">Casino Lobby</h1>
         <p className="mt-2 text-muted">Choose a game to start playing.</p>

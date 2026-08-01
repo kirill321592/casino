@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "nest-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../roulette-back", "run", "start:dev"],
+      "port": 3000
     }
   ]
 }
