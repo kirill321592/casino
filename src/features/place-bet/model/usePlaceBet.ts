@@ -1,16 +1,15 @@
-import { useRoulette } from '@/entities/roulette/model/useRoulette'
-import type { BetType } from '@/entities/roulette/model/types'
+import { useRouletteStore, type RouletteStore } from '@/entities/roulette/model/rouletteStore'
 
+/** Stable for the life of the store, so this subscribes to nothing that moves. */
 export function usePlaceBet() {
-  const { state, placeBet: sendBet, connected } = useRoulette()
+  return useRouletteStore((store) => store.placeBet)
+}
 
-  const placeBet = (type: BetType, value?: number) => {
-    sendBet(type, value)
-  }
-
-  return {
-    placeBet,
-    selectedChip: state.selectedChip,
-    canBet: connected && state.phase === 'idle' && state.round?.status === 'betting',
-  }
+/**
+ * The table takes bets only while the round is open and no wheel is turning.
+ * A selector rather than a hook body: it returns a boolean, so the buttons wake
+ * when the table opens or closes and not once per bet placed at it.
+ */
+export function canPlaceBets(store: RouletteStore): boolean {
+  return store.connected && store.phase === 'idle' && store.round?.status === 'betting'
 }

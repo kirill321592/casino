@@ -1,10 +1,11 @@
 import { CHIP_VALUES } from '@/shared/config/constants'
-import { useRoulette } from '@/entities/roulette/model/useRoulette'
+import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { ChipButton } from '@/shared/ui/ChipButton'
 
 export function ChipSelector() {
-  const { state, dispatch } = useRoulette()
-  const disabled = state.phase === 'spinning'
+  const selectedChip = useRouletteStore((store) => store.selectedChip)
+  const disabled = useRouletteStore((store) => store.phase === 'spinning')
+  const dispatch = useRouletteStore((store) => store.dispatch)
 
   return (
     <div>
@@ -14,7 +15,7 @@ export function ChipSelector() {
           <ChipButton
             key={chip}
             value={chip}
-            selected={state.selectedChip === chip}
+            selected={selectedChip === chip}
             disabled={disabled}
             onSelect={(value) => dispatch({ type: 'SET_CHIP', chip: value })}
           />

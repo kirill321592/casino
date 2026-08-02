@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/useRoulette'
+import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { getPocketColor } from '@/entities/roulette/model/wheelLayout'
 import { cn } from '@/shared/lib/cn'
 
@@ -9,16 +9,16 @@ const PILL_COLOR: Record<string, string> = {
 }
 
 export function ResultHistory() {
-  const { state } = useRoulette()
+  const history = useRouletteStore((store) => store.history)
 
   return (
     <div className="mb-5 rounded-2xl border border-slate-400/20 bg-surface/75 p-4">
       <span className="panel-label">History</span>
       <div className="flex flex-wrap gap-2">
-        {state.history.length === 0 ? (
+        {history.length === 0 ? (
           <span className="text-faint">No spins yet</span>
         ) : (
-          state.history.map((number, index) => (
+          history.map((number, index) => (
             <span
               key={`${number}-${index}`}
               className={cn(

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { fetchPaytable, requestSpin, type SlotsPaytable } from '@/shared/api/slots'
 import { createInitialSlotsState, slotsReducer } from '@/entities/slots/model/slotsReducer'
 import { FALLBACK_PAYTABLE } from '@/entities/slots/model/symbols'
@@ -27,12 +27,19 @@ export function useSpinSlots() {
   /* Carries the settled balance back so the lobby and the roulette table agree. */
   useEffect(() => setBalance(state.balance), [state.balance, setBalance])
 
-  const spin = () => {
-    if (state.phase === 'spinning' || state.balance < state.bet) return
+  // All four callbacks below are handed to the board and the controls. Reading
+  // the state through a ref keeps them stable, so a spin re-renders the reels
+  // and nothing else.
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  const spin = useCallback(() => {
+    const { phase, balance: current, bet } = stateRef.current
+    if (phase === 'spinning' || current < bet) return
     setError(null)
     dispatch({ type: 'SPIN_REQUEST' })
 
-    void requestSpin(state.bet)
+    void requestSpin(bet)
       .then(({ reels, winnings, balance: settled }) =>
         dispatch({ type: 'SPIN_RESULT', reels, winnings, balance: settled }),
       )
@@ -41,11 +48,11 @@ export function useSpinSlots() {
         // The spin never produced a result, so give the stake back.
         dispatch({ type: 'SPIN_FAILED' })
       })
-  }
+  }, [])
 
   const completeSpin = useCallback(() => dispatch({ type: 'SPIN_COMPLETE' }), [])
-  const setBet = (bet: number) => dispatch({ type: 'SET_BET', bet })
-  const dismissResult = () => dispatch({ type: 'DISMISS_RESULT' })
+  const setBet = useCallback((bet: number) => dispatch({ type: 'SET_BET', bet }), [])
+  const dismissResult = useCallback(() => dispatch({ type: 'DISMISS_RESULT' }), [])
 
   return { state, paytable, error, spin, completeSpin, setBet, dismissResult }
 }
