@@ -1,14 +1,31 @@
+import { memo, useMemo } from 'react'
 import type { SlotsPaytable } from '@/shared/api/slots'
 
 interface PayoutTableProps {
   paytable: SlotsPaytable
 }
 
-/* Rows come straight from the server paytable, so payout tweaks need no redeploy. */
-export function PayoutTable({ paytable }: PayoutTableProps) {
-  const rows = [...paytable.symbols].sort((a, b) => b.payout3 - a.payout3)
-  const pairPayouts = paytable.symbols.map((entry) => entry.payout2)
-  const pairRange = `${Math.min(...pairPayouts)}–${Math.max(...pairPayouts)}`
+/*
+ * Rows come straight from the server paytable, so payout tweaks need no redeploy.
+ * memo: the paytable is fetched once, so this never has to redraw for a spin.
+ */
+export const PayoutTable = memo(function PayoutTable({ paytable }: PayoutTableProps) {
+  const { rows, pairRange } = useMemo(() => {
+    const symbols = paytable.symbols
+
+    let lowest = symbols[0]?.payout2 ?? 0
+    let highest = lowest
+    for (const { payout2 } of symbols) {
+      if (payout2 < lowest) lowest = payout2
+      if (payout2 > highest) highest = payout2
+    }
+
+    return {
+      // toSorted, not sort — `symbols` is state owned by the caller.
+      rows: symbols.toSorted((a, b) => b.payout3 - a.payout3),
+      pairRange: `${lowest}–${highest}`,
+    }
+  }, [paytable])
 
   return (
     <div>
@@ -23,4 +40,4 @@ export function PayoutTable({ paytable }: PayoutTableProps) {
       </ul>
     </div>
   )
-}
+})

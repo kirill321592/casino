@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { PayoutTable } from '@/entities/slots/ui/PayoutTable'
 import { SpinHistory } from '@/entities/slots/ui/SpinHistory'
 import type { SlotsSpinRecord } from '@/entities/slots/model/slotsReducer'
@@ -12,7 +13,8 @@ interface SlotsControlsProps {
   onSelectBet: (bet: number) => void
 }
 
-export function SlotsControls({
+/* memo: none of this moves while the reels do, so the spin skips it entirely. */
+export const SlotsControls = memo(function SlotsControls({
   bet,
   disabled,
   paytable,
@@ -26,4 +28,4 @@ export function SlotsControls({
       <SpinHistory history={history} />
     </aside>
   )
-}
+})

@@ -1,8 +1,8 @@
+import { memo } from 'react'
 import { getPocketColor } from '@/entities/roulette/model/wheelLayout'
+import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { cn } from '@/shared/lib/cn'
-import { usePlaceBet } from '../model/usePlaceBet'
-
-const NUMBERS = Array.from({ length: 37 }, (_, i) => i)
+import { canPlaceBets, usePlaceBet } from '../model/usePlaceBet'
 
 const numberBase =
   'rounded-control px-3.5 py-2.5 font-bold text-white transition-[transform,opacity] duration-150 enabled:hover:-translate-y-px'
@@ -13,18 +13,27 @@ const NUMBER_COLOR: Record<string, string> = {
   black: 'border border-slate-700 bg-table-black',
 }
 
-export function NumberGrid() {
-  const { placeBet, canBet } = usePlaceBet()
+/* The pockets never change, so neither does a button's class — merge them once. */
+const POCKETS = Array.from({ length: 37 }, (_, number) => ({
+  number,
+  className: cn(numberBase, NUMBER_COLOR[getPocketColor(number)]),
+}))
+
+/* memo covers the other way in: a parent re-render can't reach these 37 buttons
+ * either, since they take no props. */
+export const NumberGrid = memo(function NumberGrid() {
+  const placeBet = usePlaceBet()
+  const canBet = useRouletteStore(canPlaceBets)
 
   return (
     <div>
       <span className="panel-label">Straight up</span>
       <div className="grid auto-rows-[3rem] grid-cols-6 gap-1.5 sm:auto-rows-[4rem]">
-        {NUMBERS.map((number) => (
+        {POCKETS.map(({ number, className }) => (
           <button
             key={number}
             type="button"
-            className={cn(numberBase, NUMBER_COLOR[getPocketColor(number)])}
+            className={className}
             disabled={!canBet}
             onClick={() => placeBet('straight', number)}
           >
@@ -34,4 +43,4 @@ export function NumberGrid() {
       </div>
     </div>
   )
-}
+})

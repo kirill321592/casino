@@ -33,7 +33,13 @@ const games: GameCard[] = [
   },
 ]
 
-export function HomePage({ onSelect }: { onSelect: (game: GameId) => void }) {
+interface HomePageProps {
+  onSelect: (game: GameId) => void
+  /** Called on hover/focus so the game's chunk is already in flight on click. */
+  onPreload?: (game: GameId) => void
+}
+
+export function HomePage({ onSelect, onPreload }: HomePageProps) {
   const user = useAuthUser()
 
   return (
@@ -55,6 +61,8 @@ export function HomePage({ onSelect }: { onSelect: (game: GameId) => void }) {
             type="button"
             disabled={!game.available}
             onClick={() => game.available && onSelect(game.id)}
+            onMouseEnter={() => game.available && onPreload?.(game.id)}
+            onFocus={() => game.available && onPreload?.(game.id)}
             className={cn(
               'card group relative flex flex-col items-start gap-3 overflow-hidden p-6 text-left transition-[transform,opacity] duration-150',
               game.available

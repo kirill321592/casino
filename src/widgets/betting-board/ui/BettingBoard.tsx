@@ -1,4 +1,4 @@
-import { useRoulette } from '@/entities/roulette/model/useRoulette'
+import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { calcTotalStake } from '@/entities/roulette/model/payouts'
 import { BetChip } from '@/entities/roulette/ui/BetChip'
 import { ChipSelector } from '@/features/place-bet/ui/ChipSelector'
@@ -7,8 +7,8 @@ import { NumberGrid } from '@/features/place-bet/ui/NumberGrid'
 import { ClearBetsButton } from '@/features/clear-bets/ui/ClearBetsButton'
 
 export function BettingBoard() {
-  const { state } = useRoulette()
-  const totalStake = calcTotalStake(state.bets)
+  const bets = useRouletteStore((store) => store.bets)
+  const totalStake = calcTotalStake(bets)
 
   return (
     <aside className="card flex flex-col gap-[1.125rem] p-4 sm:p-5">
@@ -17,11 +17,11 @@ export function BettingBoard() {
       <NumberGrid />
       <div className="pt-1">
         <span className="panel-label">Active bets</span>
-        {state.bets.length === 0 ? (
+        {bets.length === 0 ? (
           <p className="m-0 text-faint">Place a bet to spin.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {state.bets.map((bet) => (
+            {bets.map((bet) => (
               <BetChip key={bet.id} bet={bet} />
             ))}
           </div>

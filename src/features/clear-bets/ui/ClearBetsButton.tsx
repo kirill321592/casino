@@ -1,9 +1,11 @@
-import { useRoulette } from '@/entities/roulette/model/useRoulette'
+import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { Button } from '@/shared/ui/Button'
 
 export function ClearBetsButton() {
-  const { state, dispatch } = useRoulette()
-  const disabled = state.phase === 'spinning' || state.bets.length === 0
+  const disabled = useRouletteStore(
+    (store) => store.phase === 'spinning' || store.bets.length === 0,
+  )
+  const dispatch = useRouletteStore((store) => store.dispatch)
 
   return (
     <Button
