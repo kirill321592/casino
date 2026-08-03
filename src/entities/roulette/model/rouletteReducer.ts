@@ -25,7 +25,7 @@ export interface RouletteState {
 export type RouletteAction =
   | { type: 'SET_CHIP'; chip: number }
   | { type: 'CLEAR_BETS' }
-  | { type: 'BET_ACCEPTED'; bet: Omit<Bet, 'id'>; balance: number }
+  | { type: 'BET_ACCEPTED'; bet: Omit<Bet, 'id'>; balance: number; roundId: string }
   | { type: 'BALANCE_SYNC'; balance: number }
   | { type: 'ROUND_STATE'; round: RoundState }
   | { type: 'ROUND_RESULT'; winningNumber: number; payout: number; balance: number }
@@ -57,7 +57,20 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
       return { ...state, selectedChip: action.chip }
 
     case 'BET_ACCEPTED': {
+      // Mid-spin the balance is being held back for the reveal; letting an
+      // acceptance move it now would give the result away early.
       if (state.phase === 'spinning') return state
+
+      /*
+       * An acceptance names the round it was taken for. If that round is no
+       * longer the open one it has outlived its result, and the balance it
+       * carries was read before that round paid out — applying it would roll a
+       * settled balance backwards and wipe the winnings off the screen. The chip
+       * is just as stale, so both are dropped and the next round:result or
+       * session:balance restates the figure.
+       */
+      if (action.roundId !== state.round?.id) return state
+
       const bet: Bet = { ...action.bet, id: `bet-${++betIdCounter}` }
       // The stake left the balance the moment the server took the bet.
       return { ...state, bets: [...state.bets, bet], balance: action.balance }
@@ -89,9 +102,11 @@ export function rouletteReducer(state: RouletteState, action: RouletteAction): R
       }
     }
 
+    /* Takes the chips off the board and nothing else — the result on screen is
+     * dismissed by DISMISS_RESULT or by the next round opening. */
     case 'CLEAR_BETS':
       if (state.phase === 'spinning') return state
-      return { ...state, bets: [], phase: 'idle' }
+      return { ...state, bets: [] }
 
     case 'ROUND_RESULT': {
       if (state.phase !== 'idle' && state.phase !== 'result') return state

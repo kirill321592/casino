@@ -6,10 +6,14 @@ export function usePlaceBet() {
 }
 
 /**
- * The table takes bets only while the round is open and no wheel is turning.
+ * The table takes bets whenever the round is open and no wheel is turning — the
+ * previous result staying on screen does not close it. The server opens the next
+ * round before the wheel stops, so waiting for the overlay to be dismissed would
+ * quietly cost the player seconds off a window they never see start.
+ *
  * A selector rather than a hook body: it returns a boolean, so the buttons wake
  * when the table opens or closes and not once per bet placed at it.
  */
 export function canPlaceBets(store: RouletteStore): boolean {
-  return store.connected && store.phase === 'idle' && store.round?.status === 'betting'
+  return store.connected && store.phase !== 'spinning' && store.round?.status === 'betting'
 }

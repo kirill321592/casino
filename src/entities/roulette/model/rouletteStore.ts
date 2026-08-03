@@ -39,9 +39,15 @@ export const useRouletteStore = create<RouletteStore>((set, get) => ({
    */
   dispatch: (action) => set((store) => rouletteReducer(store, action)),
 
+  /*
+   * Open whenever the round is, including while the previous result is still on
+   * screen — the server opens the next round before the wheel has finished, and
+   * making the player dismiss the overlay first costs them betting time they
+   * cannot get back.
+   */
   placeBet: (type, value) => {
     const { round, phase, selectedChip } = get()
-    if (!live?.connected || round?.status !== 'betting' || phase !== 'idle') return
+    if (!live?.connected || round?.status !== 'betting' || phase === 'spinning') return
 
     live.emit('bet:place', {
       roundId: round.id,
@@ -74,6 +80,7 @@ export const useRouletteStore = create<RouletteStore>((set, get) => ({
         type: 'BET_ACCEPTED',
         bet: { type: bet.type, amount: bet.amount, value: bet.number },
         balance: bet.balance,
+        roundId: bet.roundId,
       }),
     )
     socket.on('bet:rejected', ({ message }: GameError) => setError(message))

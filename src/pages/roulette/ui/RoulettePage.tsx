@@ -4,6 +4,7 @@ import { GameHeader } from '@/widgets/game-header/ui/GameHeader'
 import { BettingBoard } from '@/widgets/betting-board/ui/BettingBoard'
 import { RouletteBoard } from '@/widgets/roulette-board/ui/RouletteBoard'
 import { ResultHistory } from '@/widgets/result-history/ui/ResultHistory'
+import { RoundStatus } from '@/widgets/round-status/ui/RoundStatus'
 
 /* Lazy-loaded by the lobby, so the socket client and the Pixi wheel ship here. */
 export function RoulettePage({ onExit }: { onExit?: () => void }) {
@@ -25,6 +26,7 @@ export function RoulettePage({ onExit }: { onExit?: () => void }) {
           {error}
         </p>
       )}
+      <RoundStatus />
       <div className="game-grid">
         <RouletteBoard />
         <BettingBoard />
