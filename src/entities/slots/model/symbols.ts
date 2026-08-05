@@ -1,7 +1,7 @@
 import type { SlotsPaytable, SlotsPaytableEntry } from '@/shared/api/slots'
 
 /*
- * The reel strip the Pixi scene scrolls through. Odds and payouts are the
+ * The reel strip the drums carry. Odds and payouts are the
  * server's business — these values only seed the UI until `slots:paytable`
  * arrives, and the symbol order drives the animation strip.
  */

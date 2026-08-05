@@ -6,7 +6,7 @@ import { RouletteBoard } from '@/widgets/roulette-board/ui/RouletteBoard'
 import { ResultHistory } from '@/widgets/result-history/ui/ResultHistory'
 import { RoundStatus } from '@/widgets/round-status/ui/RoundStatus'
 
-/* Lazy-loaded by the lobby, so the socket client and the Pixi wheel ship here. */
+/* Lazy-loaded by the lobby, so the socket client and the 3D wheel ship here. */
 export function RoulettePage({ onExit }: { onExit?: () => void }) {
   useRouletteTable()
   const balance = useRouletteStore((store) => store.balance)
@@ -14,12 +14,7 @@ export function RoulettePage({ onExit }: { onExit?: () => void }) {
 
   return (
     <div className="page-shell">
-      <GameHeader
-        title="European Roulette"
-        subtitle="Place your bets and spin the wheel."
-        balance={balance}
-        onExit={onExit}
-      />
+      <GameHeader title="European Roulette" subtitle="" balance={balance} onExit={onExit} />
       <ResultHistory />
       {error && (
         <p className="m-0 text-faint" role="alert">

@@ -6,7 +6,7 @@ import { HomePage, type GameId } from '@/pages/home/ui/HomePage'
 import './styles/global.css'
 
 /*
- * Both tables carry Pixi, and roulette carries a Socket.IO client on top. None
+ * Both tables carry three.js, and roulette carries a Socket.IO client on top. None
  * of it belongs in the chunk that has to render a sign-in form, so each game is
  * fetched when the player picks it — or a moment earlier, on hover (see
  * `preload` below).

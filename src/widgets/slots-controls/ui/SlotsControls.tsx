@@ -22,7 +22,7 @@ export const SlotsControls = memo(function SlotsControls({
   onSelectBet,
 }: SlotsControlsProps) {
   return (
-    <aside className="card flex flex-col gap-5 p-4 sm:p-5">
+    <aside className="card flex flex-col gap-4 p-3 sm:p-4">
       <SlotsBetSelector bet={bet} disabled={disabled} onSelect={onSelectBet} />
       <PayoutTable paytable={paytable} />
       <SpinHistory history={history} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ComponentRef } from 'react'
-import { PixiSlots } from '@/entities/slots/ui/PixiSlots'
+import { SlotsCanvas } from '@/entities/slots/ui/SlotsCanvas'
 import type { SlotsState } from '@/entities/slots/model/slotsReducer'
 import { SpinSlotsButton } from '@/features/spin-slots/ui/SpinSlotsButton'
 import { ResultOverlay } from '@/shared/ui/ResultOverlay'
@@ -12,7 +12,7 @@ interface SlotsBoardProps {
 }
 
 export function SlotsBoard({ state, onSpin, onSpinComplete, onDismissResult }: SlotsBoardProps) {
-  const reelsRef = useRef<ComponentRef<typeof PixiSlots>>(null)
+  const reelsRef = useRef<ComponentRef<typeof SlotsCanvas>>(null)
 
   // Reels only arrive once the server has answered, so this waits for them.
   useEffect(() => {
@@ -23,7 +23,7 @@ export function SlotsBoard({ state, onSpin, onSpinComplete, onDismissResult }: S
 
   return (
     <section className="card relative flex flex-col items-center justify-center gap-5 p-6 sm:p-8">
-      <PixiSlots ref={reelsRef} initialReels={state.reels} />
+      <SlotsCanvas ref={reelsRef} initialReels={state.reels} />
       <SpinSlotsButton
         bet={state.bet}
         spinning={state.phase === 'spinning'}

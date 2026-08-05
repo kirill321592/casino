@@ -11,7 +11,7 @@ export function BettingBoard() {
   const totalStake = calcTotalStake(bets)
 
   return (
-    <aside className="card flex flex-col gap-[1.125rem] p-4 sm:p-5">
+    <aside className="card flex flex-col gap-3.5 p-3 sm:p-4">
       <ChipSelector />
       <ColorBetButtons />
       <NumberGrid />

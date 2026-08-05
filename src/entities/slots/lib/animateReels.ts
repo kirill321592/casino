@@ -1,13 +1,13 @@
-import type { Ticker } from 'pixi.js'
 import { easeOutBack, easeOutQuart } from '@/shared/lib/easing'
+import type { RenderLoop } from '@/shared/lib/renderLoop'
 import {
-  getPaylineSymbol,
+  pulseReel,
   setReelBlur,
   setReelPosition,
   STRIP,
   type Reel,
   type SlotsScene,
-} from './createReels'
+} from './reelScene'
 
 export const SLOTS_SPIN_DURATION_MS = 1500
 export const SLOTS_CELEBRATION_MS = 900
@@ -30,7 +30,7 @@ interface ReelPlan {
 }
 
 export function animateReels(
-  ticker: Ticker,
+  loop: RenderLoop,
   scene: SlotsScene,
   targetSymbols: string[],
   durationMs: number,
@@ -72,7 +72,7 @@ export function animateReels(
 
         setReelPosition(plan.reel, (plan.start + travel) % STRIP.length)
         setReelBlur(plan.reel, Math.abs(travel - plan.travelled))
-        plan.reel.glow.alpha = isAnticipating(plan, elapsed, settled)
+        plan.reel.glow.opacity = isAnticipating(plan, elapsed, settled)
           ? anticipationGlow(elapsed)
           : 0
         plan.travelled = travel
@@ -84,13 +84,14 @@ export function animateReels(
         for (const plan of plans) {
           setReelPosition(plan.reel, plan.target)
           setReelBlur(plan.reel, 0)
+          plan.reel.glow.opacity = 0
         }
-        ticker.remove(tick)
+        loop.remove(tick)
         resolve()
       }
     }
 
-    ticker.add(tick)
+    loop.add(tick)
   })
 }
 
@@ -113,7 +114,7 @@ function anticipationGlow(elapsed: number): number {
 
 /** Flashes the symbols that paid. Cosmetic only — the balance is already settled. */
 export function celebrateWin(
-  ticker: Ticker,
+  loop: RenderLoop,
   scene: SlotsScene,
   reelIndexes: number[],
 ): Promise<void> {
@@ -127,17 +128,15 @@ export function celebrateWin(
       const t = Math.min((performance.now() - startTime) / SLOTS_CELEBRATION_MS, 1)
       const pulse = t < 1 ? Math.sin(t * Math.PI * 3) ** 2 : 0
 
-      for (const reel of winners) {
-        reel.winGlow.alpha = 0.5 * pulse
-        getPaylineSymbol(reel)?.scale.set(1 + 0.2 * pulse)
-      }
+      for (const reel of winners) pulseReel(reel, pulse)
 
       if (t >= 1) {
-        ticker.remove(tick)
+        for (const reel of winners) pulseReel(reel, 0)
+        loop.remove(tick)
         resolve()
       }
     }
 
-    ticker.add(tick)
+    loop.add(tick)
   })
 }

@@ -22,7 +22,7 @@ export function GameHeader({ title, subtitle, balance, onExit }: GameHeaderProps
           </button>
         )}
         <h1 className="m-0 text-2xl sm:text-[2rem]">{title}</h1>
-        <p className="mt-1 text-muted">{subtitle}</p>
+        {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-4">
         <BalanceCard balance={balance} />

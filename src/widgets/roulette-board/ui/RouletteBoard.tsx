@@ -1,10 +1,10 @@
 import { useEffect, useRef, type ComponentRef } from 'react'
-import { PixiRoulette } from '@/entities/roulette/ui/PixiRoulette'
+import { RouletteCanvas } from '@/entities/roulette/ui/RouletteCanvas'
 import { useRouletteStore } from '@/entities/roulette/model/rouletteStore'
 import { ResultOverlay } from '@/shared/ui/ResultOverlay'
 
 export function RouletteBoard() {
-  const wheelRef = useRef<ComponentRef<typeof PixiRoulette>>(null)
+  const wheelRef = useRef<ComponentRef<typeof RouletteCanvas>>(null)
   const phase = useRouletteStore((store) => store.phase)
   const pendingResult = useRouletteStore((store) => store.pendingResult)
   const lastResult = useRouletteStore((store) => store.lastResult)
@@ -20,7 +20,7 @@ export function RouletteBoard() {
 
   return (
     <section className="card relative flex items-center justify-center p-3 sm:p-5">
-      <PixiRoulette ref={wheelRef} className="[filter:drop-shadow(0_1rem_2rem_rgb(0_0_0/0.35))]" />
+      <RouletteCanvas ref={wheelRef} className="[filter:drop-shadow(0_1rem_2rem_rgb(0_0_0/0.35))]" />
 
       {phase === 'result' && lastResult !== null && (
         <ResultOverlay

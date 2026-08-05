@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/cn'
 import { canPlaceBets, usePlaceBet } from '../model/usePlaceBet'
 
 const numberBase =
-  'rounded-control px-3.5 py-2.5 font-bold text-white transition-[transform,opacity] duration-150 enabled:hover:-translate-y-px'
+  'rounded-control px-1.5 py-2 font-bold text-white transition-[transform,opacity] duration-150 enabled:hover:-translate-y-px'
 
 const NUMBER_COLOR: Record<string, string> = {
   green: 'col-span-6 bg-table-green',
@@ -28,7 +28,7 @@ export const NumberGrid = memo(function NumberGrid() {
   return (
     <div>
       <span className="panel-label">Straight up</span>
-      <div className="grid auto-rows-[3rem] grid-cols-6 gap-1.5 sm:auto-rows-[4rem]">
+      <div className="grid auto-rows-[2.5rem] grid-cols-6 gap-1 sm:auto-rows-[2.75rem]">
         {POCKETS.map(({ number, className }) => (
           <button
             key={number}

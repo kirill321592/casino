@@ -1,17 +1,20 @@
 import { getPocketIndex, SEGMENT_ANGLE } from './wheelLayout'
 
-/** Angle (radians) of a pocket's center, 0 = top (12 o'clock). */
+/** Angle (radians) of a pocket's center, measured from the side facing the camera. */
 export function getPocketCenterAngle(pocketNumber: number): number {
   const index = getPocketIndex(pocketNumber)
   return index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2
 }
 
 /**
- * Wheel rotation needed so `pocketNumber` sits at the top marker.
+ * Wheel rotation that brings `pocketNumber` round to angle 0.
  *
- * `getPocketCenterAngle` is measured from 12 o'clock and `drawPockets` already
- * bakes the same -PI/2 into where it draws each pocket, so undoing the pocket's
- * own angle is enough. Subtracting -PI/2 again over-rotates by a quarter turn.
+ * The scene bakes the same origin into where it places each pocket, so undoing
+ * the pocket's own angle is enough — no extra quarter turn.
+ *
+ * This is the base rotation, not where the wheel actually stops: `animateSpin`
+ * adds a random resting offset on top, since a real wheel coasts to an
+ * arbitrary halt rather than presenting the winner at a fixed point.
  */
 export function getWheelRotationForPocket(pocketNumber: number): number {
   return -getPocketCenterAngle(pocketNumber)

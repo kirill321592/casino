@@ -24,6 +24,37 @@
   --radius-control: 0.625rem; /* 10px — buttons, chips, number cells */
 
   --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /*
+   * The betting countdown bar. Duration and starting point are per-round, so the
+   * component passes them as `animation-duration` and `--countdown-from`; running
+   * it as an animation rather than a per-tick transition keeps it on the
+   * compositor, smooth even while the wheel is busy on the main thread.
+   */
+  --animate-countdown: countdown-drain linear forwards;
+
+  @keyframes countdown-drain {
+    from {
+      transform: scaleX(var(--countdown-from, 1));
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  /* The round-result popup landing in the middle of the screen. */
+  --animate-result-pop: result-pop 180ms ease-out;
+
+  @keyframes result-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 @layer base {
@@ -75,8 +106,9 @@
     @apply mx-auto max-w-[73.75rem] p-4 sm:p-6;
   }
 
-  /* Board on the left, controls on the right; stacks below 900px. */
+  /* Board on the left, controls on the right; stacks below 900px. The board
+     takes the free space and the controls stay at a fixed reading width. */
   .game-grid {
-    @apply grid grid-cols-[minmax(17.5rem,32.5rem)_minmax(17.5rem,1fr)] items-start gap-4 max-[900px]:grid-cols-1 sm:gap-6;
+    @apply grid grid-cols-[minmax(20rem,1fr)_minmax(16rem,22rem)] items-start gap-4 max-[900px]:grid-cols-1 sm:gap-6;
   }
 }
