@@ -13,15 +13,19 @@ import {
   MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  Path,
   PerspectiveCamera,
   PlaneGeometry,
   PMREMGenerator,
   RepeatWrapping,
   Scene,
+  Shape,
+  ShapeGeometry,
   SRGBColorSpace,
   WebGLRenderer,
 } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { createWoodCanvas } from '@/shared/lib/woodTexture'
 import { REEL_COUNT, SLOT_SYMBOLS } from '../model/symbols'
 
 /** Symbols showing through the window at once. The middle row is the payline. */
@@ -60,6 +64,20 @@ const FRONT_Z = DRUM_RADIUS + 0.22
 
 export const SLOTS_VIEW_WIDTH = 720
 export const SLOTS_VIEW_HEIGHT = 500
+
+const CAMERA_FOV = 38
+/* Framed on the window with the machine's face running off every edge, the way
+ * a cabinet looks from the stool, and a touch above centre. */
+const CAMERA_Z = 6.55
+const CAMERA_Y = 0.1
+
+/*
+ * How much of the cabinet's face the player actually sees. The face is wider
+ * and much taller than this, so anything meant to read as the edge of the
+ * picture — the vignette — has to be anchored here rather than to the panel.
+ */
+const VIEW_HEIGHT_AT_FACE = 2 * (CAMERA_Z - FRONT_Z) * Math.tan((CAMERA_FOV / 2) * (Math.PI / 180))
+const VIEW_WIDTH_AT_FACE = (VIEW_HEIGHT_AT_FACE * SLOTS_VIEW_WIDTH) / SLOTS_VIEW_HEIGHT
 
 const COLORS = {
   cabinet: 0x14100a,
@@ -102,10 +120,13 @@ export function createSlotsScene(renderer: WebGLRenderer, initialSymbols: string
   disposables.push(applyEnvironment(scene, renderer))
 
   const totalWidth = REEL_COUNT * DRUM_WIDTH + (REEL_COUNT - 1) * REEL_GAP
-  const camera = new PerspectiveCamera(38, SLOTS_VIEW_WIDTH / SLOTS_VIEW_HEIGHT, 0.1, 50)
-  /* Framed on the window with the machine's face running off every edge, the
-   * way a cabinet looks from the stool, and a touch above centre. */
-  camera.position.set(0, 0.1, 6.55)
+  const camera = new PerspectiveCamera(
+    CAMERA_FOV,
+    SLOTS_VIEW_WIDTH / SLOTS_VIEW_HEIGHT,
+    0.1,
+    50,
+  )
+  camera.position.set(0, CAMERA_Y, CAMERA_Z)
   camera.lookAt(0, 0, 0)
 
   addLights(scene)
@@ -121,6 +142,7 @@ export function createSlotsScene(renderer: WebGLRenderer, initialSymbols: string
   }
 
   buildCabinet(scene, totalWidth, disposables)
+  buildFacePlate(scene, totalWidth, disposables)
   buildGlass(scene, totalWidth, disposables)
   buildPayline(scene, totalWidth, disposables)
 
@@ -492,6 +514,177 @@ function buildCabinet(scene: Scene, totalWidth: number, disposables: Disposable[
     divider.position.set(-totalWidth / 2 + i * (DRUM_WIDTH + REEL_GAP) - REEL_GAP / 2, 0, panelZ)
     scene.add(divider)
   }
+}
+
+/**
+ * The face of the machine: one veneered panel with the window cut out of it.
+ *
+ * The four boxes behind it do the structural work — they are what the drums are
+ * hidden by — but as a visible surface they were four separate rectangles in one
+ * flat colour, which is what made the cabinet read as a plain square. A single
+ * plate means the grain, the shadow around the window and the falloff towards
+ * the edges of the picture all run continuously across the front, with no seam
+ * where two panels meet.
+ */
+function buildFacePlate(scene: Scene, totalWidth: number, disposables: Disposable[]): void {
+  const outerWidth = totalWidth + FRAME_WIDTH * 2
+  const outerHeight = APERTURE_HEIGHT + FRAME_HEIGHT * 2
+
+  const shape = new Shape()
+  rectangle(shape, outerWidth, outerHeight)
+  const window = new Path()
+  rectangle(window, totalWidth, APERTURE_HEIGHT)
+  shape.holes.push(window)
+
+  const geometry = new ShapeGeometry(shape)
+  const texture = createCabinetTexture(outerWidth, outerHeight, totalWidth)
+  /*
+   * ShapeGeometry uses the shape's own coordinates as UVs, so the texture is
+   * placed by mapping that range onto the bitmap — one unbroken print across the
+   * whole plate, positioned exactly where the geometry is.
+   */
+  texture.repeat.set(1 / outerWidth, 1 / outerHeight)
+  texture.offset.set(0.5, 0.5)
+
+  const material = new MeshPhysicalMaterial({
+    map: texture,
+    roughness: 0.68,
+    metalness: 0.04,
+    /* Barely any: a flat panel this size facing the camera turns even a little
+     * clearcoat into a grey wash of reflected room across the whole front, and
+     * the grain disappears under it. */
+    clearcoat: 0.12,
+    clearcoatRoughness: 0.55,
+  })
+
+  const plate = new Mesh(geometry, material)
+  /* Just clear of the panel fronts, and behind the trim that sits proud of it. */
+  plate.position.z = FRONT_Z + 0.002
+  scene.add(plate)
+  disposables.push(geometry, material, texture)
+}
+
+function rectangle(path: Shape | Path, width: number, height: number): void {
+  path.moveTo(-width / 2, -height / 2)
+  path.lineTo(width / 2, -height / 2)
+  path.lineTo(width / 2, height / 2)
+  path.lineTo(-width / 2, height / 2)
+  path.closePath()
+}
+
+/* Wide enough to hold the grain and the shadow around the window without them
+ * banding, small enough that generating it is not felt on the first frame. */
+const CABINET_TEXTURE_WIDTH = 768
+
+/* How far outside the window the inlaid line runs — clear of the bezel that
+ * covers the aperture edge, and well inside the falloff at the corners. */
+const INLAY_INSET = 0.26
+
+/**
+ * The print on the face: dark walnut, a warm wash from the marquee above, the
+ * recess shadow the window casts onto the frame, and a falloff into the corners
+ * so the machine sits in its own pool of light rather than filling a lit square.
+ */
+function createCabinetTexture(
+  outerWidth: number,
+  outerHeight: number,
+  apertureWidth: number,
+): CanvasTexture {
+  const width = CABINET_TEXTURE_WIDTH
+  const height = Math.round(width * (outerHeight / outerWidth))
+  /* Texture pixels per scene unit, so everything below is sized in world terms. */
+  const scale = width / outerWidth
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+
+  const ctx = canvas.getContext('2d')!
+  const centerX = width / 2
+  const centerY = height / 2
+
+  ctx.drawImage(
+    createWoodCanvas({
+      width: 256,
+      height: 192,
+      /*
+       * Far more rings and a far wider span than the wheel uses. A flat panel
+       * a metre across shows the figure in its veneer, and whatever is left of
+       * it after four lights wash over the front has to still read as wood
+       * rather than as a gradient.
+       */
+      rings: 9,
+      dark: [26, 16, 9],
+      light: [104, 66, 36],
+      seed: 3,
+    }),
+    0,
+    0,
+    width,
+    height,
+  )
+
+  /* Warm at the top where the marquee is, cooling as the face falls away. */
+  const wash = ctx.createLinearGradient(0, 0, 0, height)
+  wash.addColorStop(0, 'rgba(255,206,138,0.22)')
+  wash.addColorStop(0.42, 'rgba(255,196,120,0.05)')
+  wash.addColorStop(1, 'rgba(0,0,0,0.25)')
+  ctx.fillStyle = wash
+  ctx.fillRect(0, 0, width, height)
+
+  /* A pinstripe inlaid around the window: a pale line cut into the veneer, with
+   * the groove it sits in shaded on the outside of it. */
+  ctx.save()
+  ctx.translate(centerX, centerY)
+  const inlayWidth = (apertureWidth + INLAY_INSET * 2) * scale
+  const inlayHeight = (APERTURE_HEIGHT + INLAY_INSET * 2) * scale
+  ctx.lineWidth = Math.max(1, 0.012 * scale)
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'
+  ctx.strokeRect(-inlayWidth / 2 - 2, -inlayHeight / 2 - 2, inlayWidth + 4, inlayHeight + 4)
+  ctx.strokeStyle = 'rgba(233,196,132,0.28)'
+  ctx.strokeRect(-inlayWidth / 2, -inlayHeight / 2, inlayWidth, inlayHeight)
+  ctx.restore()
+
+  /*
+   * The window is a hole in this plate, so anything painted inside it is thrown
+   * away — which makes a shadowed fill of the aperture exactly the contact
+   * shadow the recess would cast onto the frame around it.
+   */
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'
+  ctx.shadowBlur = 0.22 * scale
+  ctx.fillStyle = '#000'
+  for (let pass = 0; pass < 3; pass++) {
+    ctx.fillRect(
+      centerX - (apertureWidth * scale) / 2,
+      centerY - (APERTURE_HEIGHT * scale) / 2,
+      apertureWidth * scale,
+      APERTURE_HEIGHT * scale,
+    )
+  }
+  ctx.restore()
+
+  /* Anchored to what the camera sees, not to the plate: an ellipse through the
+   * corners of the picture, opening out from the window. */
+  const radius = (VIEW_WIDTH_AT_FACE / 2) * scale
+  ctx.save()
+  ctx.translate(centerX, centerY)
+  ctx.scale(1, VIEW_HEIGHT_AT_FACE / VIEW_WIDTH_AT_FACE)
+  /* Deep, because four lights play over this panel: anything less than most of
+   * the way to black still comes back as lit brown in the corners. */
+  const vignette = ctx.createRadialGradient(0, 0, radius * 0.3, 0, 0, radius * 1.02)
+  vignette.addColorStop(0, 'rgba(0,0,0,0)')
+  vignette.addColorStop(0.5, 'rgba(0,0,0,0.36)')
+  vignette.addColorStop(0.8, 'rgba(0,0,0,0.78)')
+  vignette.addColorStop(1, 'rgba(0,0,0,0.97)')
+  ctx.fillStyle = vignette
+  ctx.fillRect(-width, -height, width * 2, height * 2)
+  ctx.restore()
+
+  const texture = new CanvasTexture(canvas)
+  texture.colorSpace = SRGBColorSpace
+  texture.anisotropy = 8
+  return texture
 }
 
 /**

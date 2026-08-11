@@ -64,6 +64,13 @@ const COLORS = {
   gold: 0xc4a04a,
 } as const
 
+/*
+ * The gold is satin, not mirror: a wide, soft highlight rather than a hard one.
+ * Shared by the rim band, the hoops, the frets and the cone so the metal reads
+ * as one finish across the wheel.
+ */
+const GOLD_ROUGHNESS = 0.42
+
 const NUMBER_TEXTURE_SIZE = 1024
 /* Where the digits sit across the number band, 0 = inner edge, 1 = outer. */
 const NUMBER_RADIUS_RATIO = 0.5
@@ -83,8 +90,6 @@ const CAMERA_FOV = 34
 const WHEEL_EXTENT = RIM_RADIUS + 0.085
 /* Breathing room around that, so the rim never touches the canvas edge. */
 const FRAMING_PADDING = 1.22
-/* Height of the eye above the wheel plane, relative to its distance out front. */
-const CAMERA_PITCH = 0.87
 
 export interface WheelScene {
   scene: Scene
@@ -136,19 +141,24 @@ export function createWheelScene(renderer: WebGLRenderer): WheelScene {
 }
 
 /**
- * Pulls the camera back far enough that the whole wheel fits.
+ * Puts the eye straight above the wheel, far enough back that it all fits.
  *
  * Derived from the geometry rather than hand-tuned, so changing the rim or the
- * skirt cannot quietly start clipping the edges again. The view is square and
- * the wheel is widest across, so the horizontal extent is what has to fit.
+ * skirt cannot quietly start clipping the edges again. Looking down, the wheel
+ * is as wide as it is tall on screen, so the same extent bounds both axes.
+ *
+ * Up is -Z, which points screen-up at world -Z and so screen-down at +Z. That
+ * is the side the numbers' feet face and where theta 0 — the winning pocket —
+ * comes to rest, so the digits read upright and the result lands nearest the
+ * player, as it did from the old three-quarter view.
  */
 function frameWheel(camera: PerspectiveCamera): void {
   const halfFov = (CAMERA_FOV / 2) * (Math.PI / 180)
   const distance = (WHEEL_EXTENT * FRAMING_PADDING) / Math.tan(halfFov)
 
-  const length = Math.hypot(CAMERA_PITCH, 1)
-  camera.position.set(0, (distance * CAMERA_PITCH) / length, distance / length)
-  camera.lookAt(0, -0.02, 0)
+  camera.up.set(0, 0, -1)
+  camera.position.set(0, distance, 0)
+  camera.lookAt(0, 0, 0)
 }
 
 /** Places the ball in the wheel plane at `angle`, `radius` out and `y` up. */
@@ -172,7 +182,7 @@ function applyEnvironment(scene: Scene, renderer: WebGLRenderer): { dispose: () 
   const target = pmrem.fromScene(room, 0.04)
 
   scene.environment = target.texture
-  scene.environmentIntensity = 0.55
+  scene.environmentIntensity = 0.6
 
   room.dispose?.()
   pmrem.dispose()
@@ -181,7 +191,10 @@ function applyEnvironment(scene: Scene, renderer: WebGLRenderer): { dispose: () 
 }
 
 function addLights(scene: Scene): void {
-  const key = new DirectionalLight(0xfff2d8, 2.4)
+  /* The single directional light is what puts a hotspot on every curved
+   * surface, so it stays modest and the ambient hemisphere carries more of the
+   * exposure — same brightness overall, far less glare. */
+  const key = new DirectionalLight(0xfff2d8, 1.8)
   key.position.set(1.6, 3.4, 2.2)
   key.castShadow = true
   key.shadow.mapSize.set(1024, 1024)
@@ -198,7 +211,7 @@ function addLights(scene: Scene): void {
   fill.position.set(-2.4, 1.4, -1.6)
   scene.add(fill)
 
-  scene.add(new HemisphereLight(0xdfe9ff, 0x0a0806, 0.5))
+  scene.add(new HemisphereLight(0xdfe9ff, 0x0a0806, 1))
 }
 
 /*
@@ -249,11 +262,12 @@ function buildBowl(parent: Group, disposables: { dispose: () => void }[]): void 
   const geometry = new LatheGeometry(profile, 160)
   const material = new MeshPhysicalMaterial({
     map: wood,
-    roughness: 0.32,
+    roughness: 0.58,
     metalness: 0.06,
-    /* Lacquer over the grain — the sheen a polished wheel has. */
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.1,
+    /* Oiled rather than lacquered: the grain still catches light, but the sheen
+     * is spread out instead of standing as a hard reflection. */
+    clearcoat: 0.25,
+    clearcoatRoughness: 0.45,
     side: DoubleSide,
   })
   const bowl = new Mesh(geometry, material)
@@ -264,7 +278,7 @@ function buildBowl(parent: Group, disposables: { dispose: () => void }[]): void 
   const bandGeometry = new TorusGeometry(RIM_RADIUS + 0.04, 0.03, 20, 140)
   const goldMaterial = new MeshStandardMaterial({
     color: COLORS.gold,
-    roughness: 0.22,
+    roughness: GOLD_ROUGHNESS,
     metalness: 1,
   })
   const band = new Mesh(bandGeometry, goldMaterial)
@@ -277,10 +291,10 @@ function buildBowl(parent: Group, disposables: { dispose: () => void }[]): void 
   const skirtGeometry = new CylinderGeometry(RIM_RADIUS + 0.085, RIM_RADIUS + 0.02, 0.16, 120, 1, true)
   const skirtMaterial = new MeshPhysicalMaterial({
     map: wood,
-    roughness: 0.4,
+    roughness: 0.66,
     metalness: 0.06,
-    clearcoat: 0.6,
-    clearcoatRoughness: 0.18,
+    clearcoat: 0.18,
+    clearcoatRoughness: 0.5,
     side: DoubleSide,
   })
   const skirt = new Mesh(skirtGeometry, skirtMaterial)
@@ -322,7 +336,7 @@ function buildPockets(wheel: Group, disposables: { dispose: () => void }[]): voi
 function buildBandRings(wheel: Group, disposables: { dispose: () => void }[]): void {
   const material = new MeshStandardMaterial({
     color: COLORS.gold,
-    roughness: 0.2,
+    roughness: GOLD_ROUGHNESS,
     metalness: 1,
   })
   disposables.push(material)
@@ -379,7 +393,7 @@ function buildFrets(wheel: Group, disposables: { dispose: () => void }[]): void 
   )
   const material = new MeshStandardMaterial({
     color: COLORS.gold,
-    roughness: 0.25,
+    roughness: GOLD_ROUGHNESS,
     metalness: 1,
   })
   disposables.push(geometry, material)
@@ -405,10 +419,10 @@ function buildFrets(wheel: Group, disposables: { dispose: () => void }[]): void 
 function pocketMaterial(color: number): MeshPhysicalMaterial {
   return new MeshPhysicalMaterial({
     color,
-    roughness: 0.42,
+    roughness: 0.62,
     metalness: 0.1,
-    clearcoat: 0.6,
-    clearcoatRoughness: 0.25,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.5,
     side: DoubleSide,
   })
 }
@@ -489,7 +503,7 @@ function createNumbersTexture(): CanvasTexture {
 function buildCone(wheel: Group, disposables: { dispose: () => void }[]): void {
   const goldMaterial = new MeshStandardMaterial({
     color: COLORS.gold,
-    roughness: 0.2,
+    roughness: GOLD_ROUGHNESS,
     metalness: 1,
   })
   disposables.push(goldMaterial)
@@ -520,11 +534,13 @@ function buildBall(disposables: { dispose: () => void }[]): Mesh {
   const geometry = new SphereGeometry(BALL_RADIUS, 32, 24)
   const material = new MeshPhysicalMaterial({
     color: 0xf6f4ef,
-    roughness: 0.12,
+    /* Ivory, so it keeps a little more gloss than the wheel around it — it has
+     * to stay findable against the pockets — but nothing like a glass bead. */
+    roughness: 0.34,
     metalness: 0.05,
-    clearcoat: 1,
-    clearcoatRoughness: 0.06,
-    sheen: 0.4,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.3,
+    sheen: 0.2,
   })
 
   const ball = new Mesh(geometry, material)
