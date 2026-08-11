@@ -1,13 +1,6 @@
 import { easeOutBack, easeOutQuart } from '@/shared/lib/easing'
 import type { RenderLoop } from '@/shared/lib/renderLoop'
-import {
-  pulseReel,
-  setReelBlur,
-  setReelPosition,
-  STRIP,
-  type Reel,
-  type SlotsScene,
-} from './reelScene'
+import { pulseReel, setReelBlur, setReelPosition, type Reel, type SlotsScene } from './reelScene'
 
 export const SLOTS_SPIN_DURATION_MS = 1500
 export const SLOTS_CELEBRATION_MS = 900
@@ -42,9 +35,11 @@ export function animateReels(
     targetSymbols.slice(0, lastIndex).every((symbol) => symbol === targetSymbols[0])
 
   const plans: ReelPlan[] = scene.reels.map((reel, i) => {
-    const target = Math.max(0, STRIP.indexOf(targetSymbols[i] ?? STRIP[0]!))
-    const start = reel.position % STRIP.length
-    const forward = (((target - start) % STRIP.length) + STRIP.length) % STRIP.length
+    // Every drum carries its own symbol order, so each target is looked up on it.
+    const cells = reel.strip.length
+    const target = Math.max(0, reel.strip.indexOf(targetSymbols[i] ?? reel.strip[0]!))
+    const start = reel.position % cells
+    const forward = (((target - start) % cells) + cells) % cells
     const teasing = teased && i === lastIndex
 
     return {
@@ -52,7 +47,7 @@ export function animateReels(
       start,
       target,
       // Later reels loop once more and run longer, so they stop one by one.
-      distance: forward + (BASE_LOOPS + i) * STRIP.length,
+      distance: forward + (BASE_LOOPS + i) * cells,
       spinMs: durationMs + i * REEL_STAGGER_MS + (teasing ? ANTICIPATION_MS : 0),
       teasing,
       travelled: 0,
@@ -70,7 +65,7 @@ export function animateReels(
         const settled = elapsed >= plan.spinMs + SETTLE_MS
         const travel = settled ? plan.distance : travelAt(plan, elapsed)
 
-        setReelPosition(plan.reel, (plan.start + travel) % STRIP.length)
+        setReelPosition(plan.reel, (plan.start + travel) % plan.reel.strip.length)
         setReelBlur(plan.reel, Math.abs(travel - plan.travelled))
         plan.reel.glow.opacity = isAnticipating(plan, elapsed, settled)
           ? anticipationGlow(elapsed)

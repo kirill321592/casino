@@ -42,6 +42,23 @@
     }
   }
 
+  /*
+   * The skeleton standing in for a game canvas while its scene is built. Opacity
+   * only, so it stays on the compositor while the main thread is busy doing the
+   * very thing this is covering for.
+   */
+  --animate-canvas-shimmer: canvas-shimmer 1.6s ease-in-out infinite;
+
+  @keyframes canvas-shimmer {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
   /* The round-result popup landing in the middle of the screen. */
   --animate-result-pop: result-pop 180ms ease-out;
 

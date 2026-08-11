@@ -1,8 +1,17 @@
-import { lazy, Suspense, useCallback, useState, type ComponentType, type ReactNode } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from 'react'
 import { SessionProvider } from '@/entities/session/model/SessionProvider'
 import { useSession } from '@/entities/session/model/useSession'
 import { AuthPage } from '@/pages/auth/ui/AuthPage'
 import { HomePage, type GameId } from '@/pages/home/ui/HomePage'
+import { whenIdle } from '@/shared/lib/schedule'
 import './styles/global.css'
 
 /*
@@ -50,6 +59,13 @@ function Casino() {
   const [game, setGame] = useState<GameId | null>(null)
   const exit = useCallback(() => setGame(null), [])
 
+  /* Whichever card the player is reading, they are about to want one of these.
+   * Fetching both while the lobby is idle leaves the click nothing to download. */
+  useEffect(() => {
+    if (game !== null) return
+    return whenIdle(prefetchGames, PREFETCH_DELAY_MS)
+  }, [game])
+
   if (game === null) {
     return <HomePage onSelect={setGame} onPreload={preload} />
   }
@@ -66,6 +82,19 @@ function Casino() {
 /* Pointing at a card is a good enough signal to start the download. */
 function preload(game: GameId) {
   void loaders[game]()
+}
+
+/* Long enough that the lobby's own work is finished, short enough that a player
+ * reading the two cards is still reading them when the fetch starts. */
+const PREFETCH_DELAY_MS = 1500
+
+function prefetchGames() {
+  /* Between them the tables are most of the app's JavaScript — not something to
+   * spend on someone's behalf when they have asked the browser to go easy. */
+  const { connection } = navigator as Navigator & { connection?: { saveData?: boolean } }
+  if (connection?.saveData) return
+
+  for (const load of Object.values(loaders)) void load()
 }
 
 function Placeholder({ children }: { children: ReactNode }) {

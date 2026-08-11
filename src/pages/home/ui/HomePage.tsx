@@ -63,6 +63,8 @@ export function HomePage({ onSelect, onPreload }: HomePageProps) {
             onClick={() => game.available && onSelect(game.id)}
             onMouseEnter={() => game.available && onPreload?.(game.id)}
             onFocus={() => game.available && onPreload?.(game.id)}
+            /* Touch never hovers, and pointerdown still beats the click by a frame. */
+            onPointerDown={() => game.available && onPreload?.(game.id)}
             className={cn(
               'card group relative flex flex-col items-start gap-3 overflow-hidden p-6 text-left transition-[transform,opacity] duration-150',
               game.available

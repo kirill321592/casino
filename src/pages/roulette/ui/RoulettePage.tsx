@@ -15,7 +15,6 @@ export function RoulettePage({ onExit }: { onExit?: () => void }) {
   return (
     <div className="page-shell">
       <GameHeader title="European Roulette" subtitle="" balance={balance} onExit={onExit} />
-      <ResultHistory />
       {error && (
         <p className="m-0 text-faint" role="alert">
           {error}
@@ -26,6 +25,7 @@ export function RoulettePage({ onExit }: { onExit?: () => void }) {
         <RouletteBoard />
         <BettingBoard />
       </div>
+      <ResultHistory />
     </div>
   )
 }
