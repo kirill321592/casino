@@ -3,6 +3,7 @@ import { AuthForm } from '@/features/auth/ui/AuthForm'
 export function AuthPage() {
   return (
     <div className="page-shell flex min-h-screen flex-col items-center justify-center">
+      <title>Sign In · European Casino</title>
       <header className="mb-8 text-center">
         <span className="text-5xl" aria-hidden>
           🎰

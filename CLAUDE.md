@@ -1,6 +1,6 @@
 # roulette
 
-React 19 + TypeScript + Vite. Tailwind v4, PixiJS for the roulette/slots canvas, react-hook-form for forms, socket.io-client for the live feed. Source follows Feature-Sliced Design: `app` → `pages` → `widgets` → `features` → `entities` → `shared`, imports only ever point down that list.
+React 19 + TypeScript + Vite. React Router (routes in `shared/config/routes.ts`), Tailwind v4, three.js (WebGL) for the roulette/slots canvas, react-hook-form for forms, socket.io-client for the live feed. Source follows Feature-Sliced Design: `app` → `pages` → `widgets` → `features` → `entities` → `shared`, imports only ever point down that list.
 
 ## Commands
 

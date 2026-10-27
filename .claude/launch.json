@@ -10,7 +10,7 @@
     {
       "name": "nest-api",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "../roulette-back", "run", "start:dev"],
+      "runtimeArgs": ["--prefix", "../casino-back", "run", "start:dev"],
       "port": 3000
     }
   ]

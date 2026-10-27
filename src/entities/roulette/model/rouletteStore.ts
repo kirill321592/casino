@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { io, type Socket } from 'socket.io-client'
 import { gameServerUrl, type GameError } from '@/shared/api/gameServer'
+import { getJson } from '@/shared/api/http'
 import type { RoundResult, RoundState, ServerBet } from '@/shared/api/roulette'
 import {
   createInitialRouletteState,
@@ -26,6 +27,13 @@ export interface RouletteStore extends RouletteState {
 
 /* Whichever socket is currently live. Only `connect` writes it. */
 let live: Socket | null = null
+
+/*
+ * How many times in a row the server may hang up on a socket before the table
+ * stops dialling back. It only ever does so on purpose — a handshake it would
+ * not authenticate — so a second refusal in a row is not going to be the last.
+ */
+const MAX_SERVER_HANGUPS = 3
 
 export const useRouletteStore = create<RouletteStore>((set, get) => ({
   ...createInitialRouletteState(0),
@@ -68,13 +76,49 @@ export const useRouletteStore = create<RouletteStore>((set, get) => ({
     const socket = io(`${gameServerUrl}/roulette`, { withCredentials: true })
     live = socket
 
+    let hangups = 0
+
     socket.on('connect', () => set({ connected: true, error: null }))
-    socket.on('disconnect', () => setError('Connection to the roulette server was lost.'))
-    socket.on('connect_error', () => setError('Unable to connect to the roulette server.'))
+    /*
+     * A dropped transport — wifi blip, server restart — Socket.IO redials on its
+     * own, with backoff. A deliberate hangup it leaves alone, and here that means
+     * the server would not take the session cookie. Asking the HTTP API settles
+     * which it is: a 401 there signs the player out through the usual path,
+     * anything else means the session is fine and the table can dial back in.
+     */
+    socket.on('disconnect', (reason) => {
+      set({ connected: false })
+      if (reason === 'io client disconnect') return
+
+      if (reason !== 'io server disconnect') {
+        setError('Lost connection to the roulette server. Reconnecting…')
+        return
+      }
+
+      hangups += 1
+      if (hangups > MAX_SERVER_HANGUPS) {
+        setError('The roulette server keeps closing the connection. Reload the page to try again.')
+        return
+      }
+
+      getJson('/auth/me')
+        .then(() => {
+          if (live === socket) socket.connect()
+        })
+        .catch(() => undefined)
+    })
+    socket.on('connect_error', () => {
+      set({ connected: false })
+      setError('Unable to reach the roulette server. Retrying…')
+    })
     socket.on('session:balance', ({ balance }: { balance: number }) =>
       dispatch({ type: 'BALANCE_SYNC', balance }),
     )
-    socket.on('round:state', (round: RoundState) => dispatch({ type: 'ROUND_STATE', round }))
+    socket.on('round:state', (round: RoundState) => {
+      // A round only arrives once the handshake was accepted.
+      hangups = 0
+      dispatch({ type: 'ROUND_STATE', round })
+    })
     socket.on('bet:accepted', (bet: ServerBet) =>
       dispatch({
         type: 'BET_ACCEPTED',

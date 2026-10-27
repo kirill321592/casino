@@ -11,6 +11,11 @@ export interface RenderLoop {
   /** Draws a single frame without starting the loop. */
   requestRender: () => void
   dispose: () => void
+  /**
+   * Settles on `dispose`. Anything awaiting an animation on this loop races
+   * against it, since a disposed loop never calls back to finish the animation.
+   */
+  disposed: Promise<void>
 }
 
 export function createRenderLoop(render: () => void): RenderLoop {
@@ -19,6 +24,10 @@ export function createRenderLoop(render: () => void): RenderLoop {
   let pendingFrame: number | null = null
   let lastTime = 0
   let disposed = false
+  let settleDisposed = () => {}
+  const disposedPromise = new Promise<void>((resolve) => {
+    settleDisposed = resolve
+  })
 
   const tick = (now: number) => {
     const deltaMs = lastTime === 0 ? 16.67 : now - lastTime
@@ -54,6 +63,8 @@ export function createRenderLoop(render: () => void): RenderLoop {
       if (pendingFrame !== null) cancelAnimationFrame(pendingFrame)
       frame = null
       pendingFrame = null
+      settleDisposed()
     },
+    disposed: disposedPromise,
   }
 }
