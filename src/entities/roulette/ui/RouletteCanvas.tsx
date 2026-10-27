@@ -1,10 +1,12 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { WebGLRenderer } from 'three'
 import { cn } from '@/shared/lib/cn'
 import { spinDuration } from '@/shared/lib/reducedMotion'
 import { createRenderLoop, type RenderLoop } from '@/shared/lib/renderLoop'
+import { reportError } from '@/shared/lib/reportError'
 import { afterPaint } from '@/shared/lib/schedule'
-import { CanvasPlaceholder } from '@/shared/ui/CanvasPlaceholder'
+import { watchContextLoss } from '@/shared/lib/webglContext'
+import { CanvasPlaceholder, CanvasUnavailable } from '@/shared/ui/CanvasPlaceholder'
 import { animateSpin, SPIN_DURATION_MS } from '../lib/animateSpin'
 import { configureRenderer, createWheelScene, type WheelScene } from '../lib/wheelScene'
 
@@ -20,19 +22,35 @@ interface RouletteCanvasProps {
 /* Retina is wasted on a wheel this size and halves the frame rate on phones. */
 const MAX_PIXEL_RATIO = 2
 
+/* `lost` is a context the browser took back and may yet return; `failed` is final
+ * until the player asks for another try. */
+type SceneStatus = 'building' | 'ready' | 'lost' | 'failed'
+
 export const RouletteCanvas = forwardRef<RouletteCanvasHandle, RouletteCanvasProps>(
   function RouletteCanvas({ className }, ref) {
     const hostRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<WheelScene | null>(null)
     const loopRef = useRef<RenderLoop | null>(null)
-    const [ready, setReady] = useState(false)
+    const [status, setStatus] = useState<SceneStatus>('building')
+    /* Bumped to throw the scene away and build it again from scratch. */
+    const [generation, setGeneration] = useState(0)
+    const ready = status === 'ready'
+
+    const rebuild = useCallback(() => {
+      setStatus('building')
+      setGeneration((current) => current + 1)
+    }, [])
 
     useImperativeHandle(ref, () => ({
       spinToPocket: async (pocketNumber: number) => {
         const scene = sceneRef.current
         const loop = loopRef.current
         if (!scene || !loop) return
-        await animateSpin(loop, scene, pocketNumber, spinDuration(SPIN_DURATION_MS))
+        /* If the scene is torn down mid-spin, the round still has to settle. */
+        await Promise.race([
+          animateSpin(loop, scene, pocketNumber, spinDuration(SPIN_DURATION_MS)),
+          loop.disposed,
+        ])
       },
     }))
 
@@ -44,6 +62,9 @@ export const RouletteCanvas = forwardRef<RouletteCanvasHandle, RouletteCanvasPro
       /* Filled in as the wheel comes up, so unmounting midway tears down exactly
        * as much as was built. Run in reverse on cleanup. */
       const cleanups: Array<() => void> = []
+      const teardown = () => {
+        for (const cleanup of cleanups.splice(0).reverse()) cleanup()
+      }
 
       /*
        * Turning 37 pockets into geometry and linking their shaders costs a
@@ -95,22 +116,42 @@ export const RouletteCanvas = forwardRef<RouletteCanvasHandle, RouletteCanvasPro
           host.replaceChildren()
         })
 
+        cleanups.push(
+          watchContextLoss(renderer.domElement, {
+            onLost: () => setStatus('lost'),
+            onRestored: rebuild,
+            onGaveUp: () => {
+              teardown()
+              setStatus('failed')
+            },
+          }),
+        )
+
         loop.requestRender()
-        setReady(true)
+        setStatus('ready')
 
         const observer = new ResizeObserver(resize)
         observer.observe(host)
         cleanups.push(() => observer.disconnect())
       }
 
-      const cancelBuild = afterPaint(() => void build())
+      /* No WebGL at all, or a driver that fails to link a shader: the table
+       * still plays without the wheel, so this is a fallback, not a crash. */
+      const cancelBuild = afterPaint(() => {
+        build().catch((error: unknown) => {
+          if (cancelled) return
+          reportError(error, { scene: 'roulette' })
+          teardown()
+          setStatus('failed')
+        })
+      })
 
       return () => {
         cancelled = true
         cancelBuild()
-        for (const cleanup of cleanups.reverse()) cleanup()
+        teardown()
       }
-    }, [])
+    }, [generation, rebuild])
 
     return (
       <div className={cn('relative aspect-square w-full max-w-[44rem]', className)}>
@@ -123,7 +164,9 @@ export const RouletteCanvas = forwardRef<RouletteCanvasHandle, RouletteCanvasPro
             ready && 'opacity-100',
           )}
         />
-        {!ready && <CanvasPlaceholder shape="wheel" label="Setting up the wheel…" />}
+        {status === 'building' && <CanvasPlaceholder shape="wheel" label="Setting up the wheel…" />}
+        {status === 'lost' && <CanvasPlaceholder shape="wheel" label="Restoring the wheel…" />}
+        {status === 'failed' && <CanvasUnavailable onRetry={rebuild} />}
       </div>
     )
   },

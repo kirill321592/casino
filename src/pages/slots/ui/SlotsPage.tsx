@@ -3,16 +3,16 @@ import { GameHeader } from '@/widgets/game-header/ui/GameHeader'
 import { SlotsBoard } from '@/widgets/slots-board/ui/SlotsBoard'
 import { SlotsControls } from '@/widgets/slots-controls/ui/SlotsControls'
 
-export function SlotsPage({ onExit }: { onExit?: () => void }) {
+export function SlotsPage() {
   const { state, paytable, error, spin, completeSpin, setBet, dismissResult } = useSpinSlots()
 
   return (
     <div className="page-shell">
+      <title>Lucky Slots · European Casino</title>
       <GameHeader
         title="Lucky Slots"
         subtitle="Spin the reels and chase the jackpot."
         balance={state.balance}
-        onExit={onExit}
       />
       {error && (
         <p className="m-0 text-faint" role="alert">

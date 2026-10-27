@@ -1,10 +1,12 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { WebGLRenderer } from 'three'
 import { cn } from '@/shared/lib/cn'
 import { spinDuration } from '@/shared/lib/reducedMotion'
 import { createRenderLoop, type RenderLoop } from '@/shared/lib/renderLoop'
+import { reportError } from '@/shared/lib/reportError'
 import { afterPaint } from '@/shared/lib/schedule'
-import { CanvasPlaceholder } from '@/shared/ui/CanvasPlaceholder'
+import { watchContextLoss } from '@/shared/lib/webglContext'
+import { CanvasPlaceholder, CanvasUnavailable } from '@/shared/ui/CanvasPlaceholder'
 import { animateReels, celebrateWin, SLOTS_SPIN_DURATION_MS } from '../lib/animateReels'
 import {
   configureRenderer,
@@ -27,6 +29,10 @@ interface SlotsCanvasProps {
 
 const MAX_PIXEL_RATIO = 2
 
+/* `lost` is a context the browser took back and may yet return; `failed` is final
+ * until the player asks for another try. */
+type SceneStatus = 'building' | 'ready' | 'lost' | 'failed'
+
 export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(function SlotsCanvas(
   { initialReels, className },
   ref,
@@ -35,7 +41,20 @@ export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(funct
   const sceneRef = useRef<SlotsScene | null>(null)
   const loopRef = useRef<RenderLoop | null>(null)
   const initialReelsRef = useRef(initialReels)
-  const [ready, setReady] = useState(false)
+  /* Kept current so a scene rebuilt after a lost context shows the last result,
+   * not the reels the machine opened with. */
+  useEffect(() => {
+    initialReelsRef.current = initialReels
+  }, [initialReels])
+  const [status, setStatus] = useState<SceneStatus>('building')
+  /* Bumped to throw the scene away and build it again from scratch. */
+  const [generation, setGeneration] = useState(0)
+  const ready = status === 'ready'
+
+  const rebuild = useCallback(() => {
+    setStatus('building')
+    setGeneration((current) => current + 1)
+  }, [])
 
   useImperativeHandle(ref, () => ({
     spinToReels: async (symbols: string[], won: boolean) => {
@@ -43,8 +62,14 @@ export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(funct
       const loop = loopRef.current
       if (!scene || !loop) return
 
-      await animateReels(loop, scene, symbols, spinDuration(SLOTS_SPIN_DURATION_MS))
-      if (won && sceneRef.current) await celebrateWin(loop, scene, getWinningLine(symbols))
+      /* If the scene is torn down mid-spin, the spin still has to settle. */
+      await Promise.race([
+        animateReels(loop, scene, symbols, spinDuration(SLOTS_SPIN_DURATION_MS)),
+        loop.disposed,
+      ])
+      if (won && sceneRef.current === scene) {
+        await Promise.race([celebrateWin(loop, scene, getWinningLine(symbols)), loop.disposed])
+      }
     },
   }))
 
@@ -56,6 +81,9 @@ export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(funct
     /* Filled in as the scene comes up, so unmounting midway tears down exactly
      * as much as was built. Run in reverse on cleanup. */
     const cleanups: Array<() => void> = []
+    const teardown = () => {
+      for (const cleanup of cleanups.splice(0).reverse()) cleanup()
+    }
 
     /*
      * Building the cabinet and linking its shaders costs a second or more, and
@@ -109,22 +137,42 @@ export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(funct
         host.replaceChildren()
       })
 
+      cleanups.push(
+        watchContextLoss(renderer.domElement, {
+          onLost: () => setStatus('lost'),
+          onRestored: rebuild,
+          onGaveUp: () => {
+            teardown()
+            setStatus('failed')
+          },
+        }),
+      )
+
       loop.requestRender()
-      setReady(true)
+      setStatus('ready')
 
       const observer = new ResizeObserver(resize)
       observer.observe(host)
       cleanups.push(() => observer.disconnect())
     }
 
-    const cancelBuild = afterPaint(() => void build())
+    /* No WebGL at all, or a driver that fails to link a shader: the machine
+     * still pays out without the reels, so this is a fallback, not a crash. */
+    const cancelBuild = afterPaint(() => {
+      build().catch((error: unknown) => {
+        if (cancelled) return
+        reportError(error, { scene: 'slots' })
+        teardown()
+        setStatus('failed')
+      })
+    })
 
     return () => {
       cancelled = true
       cancelBuild()
-      for (const cleanup of cleanups.reverse()) cleanup()
+      teardown()
     }
-  }, [])
+  }, [generation, rebuild])
 
   return (
     <div
@@ -140,7 +188,9 @@ export const SlotsCanvas = forwardRef<SlotsCanvasHandle, SlotsCanvasProps>(funct
           ready && 'opacity-100',
         )}
       />
-      {!ready && <CanvasPlaceholder shape="cabinet" label="Warming up the reels…" />}
+      {status === 'building' && <CanvasPlaceholder shape="cabinet" label="Warming up the reels…" />}
+      {status === 'lost' && <CanvasPlaceholder shape="cabinet" label="Restoring the reels…" />}
+      {status === 'failed' && <CanvasUnavailable onRetry={rebuild} />}
     </div>
   )
 })

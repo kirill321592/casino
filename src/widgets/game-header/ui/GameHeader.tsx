@@ -1,26 +1,24 @@
+import { Link } from 'react-router'
 import { BalanceCard } from '@/entities/session/ui/BalanceCard'
 import { SignOutButton } from '@/features/sign-out/ui/SignOutButton'
+import { routes } from '@/shared/config/routes'
 
 interface GameHeaderProps {
   title: string
   subtitle: string
   balance: number
-  onExit?: () => void
 }
 
-export function GameHeader({ title, subtitle, balance, onExit }: GameHeaderProps) {
+export function GameHeader({ title, subtitle, balance }: GameHeaderProps) {
   return (
     <header className="mb-5 flex items-start justify-between gap-4 max-[900px]:flex-col">
       <div>
-        {onExit && (
-          <button
-            type="button"
-            onClick={onExit}
-            className="mb-2 text-sm text-muted transition-colors hover:text-slate-50"
-          >
-            ← Back to lobby
-          </button>
-        )}
+        <Link
+          to={routes.lobby}
+          className="mb-2 inline-block text-sm text-muted no-underline transition-colors hover:text-slate-50"
+        >
+          ← Back to lobby
+        </Link>
         <h1 className="m-0 text-2xl sm:text-[2rem]">{title}</h1>
         {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
       </div>
