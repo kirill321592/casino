@@ -9,6 +9,8 @@ export interface SlotsPaytableEntry {
 /** Fetched once for display; the server never lets the client decide odds or payouts. */
 export interface SlotsPaytable {
   reelCount: number
+  /** Theoretical return to player as a fraction, worked out by the server from the odds. */
+  rtp: number
   symbols: SlotsPaytableEntry[]
 }
 
@@ -21,7 +23,8 @@ export interface SlotsSpinResult {
   balance: number
 }
 
-export function fetchPaytable(signal: AbortSignal): Promise<SlotsPaytable> {
+/* Public — the rules page shows it before anyone signs in. */
+export function fetchPaytable(signal?: AbortSignal): Promise<SlotsPaytable> {
   return getJson<SlotsPaytable>('/slots/paytable', signal)
 }
 

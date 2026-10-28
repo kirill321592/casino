@@ -1,5 +1,5 @@
 import { getJson, postJson } from '@/shared/api/http'
-import type { AuthUser, Credentials } from '../model/types'
+import type { AuthUser, Credentials, SignUpDetails } from '../model/types'
 
 /*
  * The JWT never reaches this file. It travels as an httpOnly cookie the browser
@@ -7,8 +7,8 @@ import type { AuthUser, Credentials } from '../model/types'
  * and why there is nothing to store.
  */
 
-export function signUp(credentials: Credentials): Promise<AuthUser> {
-  return postJson<AuthUser>('/auth/signup', credentials)
+export function signUp(details: SignUpDetails): Promise<AuthUser> {
+  return postJson<AuthUser>('/auth/signup', details)
 }
 
 export function signIn(credentials: Credentials): Promise<AuthUser> {

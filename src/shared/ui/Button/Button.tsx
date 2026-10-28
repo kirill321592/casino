@@ -1,7 +1,8 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ComponentPropsWithRef, ReactNode } from 'react'
 import { buttonClassName, type ButtonVariant } from './buttonClassName'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+/* Takes a ref, so a dialog can put focus on the button it means. */
+interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant
   children: ReactNode
 }

@@ -17,6 +17,15 @@ export function postJson<T>(path: string, body: unknown, signal?: AbortSignal): 
   })
 }
 
+export function putJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
+}
+
 /**
  * One round trip to the game server. Every failure — unreachable host, rejected
  * payload, non-JSON body — arrives as an Error carrying a message that is safe

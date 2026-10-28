@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { AuthUser, Credentials } from './types'
+import type { AuthUser, Credentials, SignUpDetails } from './types'
 
 export type SessionStatus = 'loading' | 'ready'
 
@@ -9,7 +9,7 @@ export interface SessionContextValue {
   /** `loading` while the stored cookie is being exchanged for an account. */
   status: SessionStatus
   signIn: (credentials: Credentials) => Promise<void>
-  signUp: (credentials: Credentials) => Promise<void>
+  signUp: (details: SignUpDetails) => Promise<void>
   signOut: () => void
   /** Games call this with the balance the server reported, never one they computed. */
   setBalance: (balance: number) => void

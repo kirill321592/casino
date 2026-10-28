@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { io, type Socket } from 'socket.io-client'
 import { gameServerUrl, type GameError } from '@/shared/api/gameServer'
 import { getJson } from '@/shared/api/http'
+import { playSound } from '@/shared/lib/sound'
 import type { RoundResult, RoundState, ServerBet } from '@/shared/api/roulette'
 import {
   createInitialRouletteState,
@@ -119,14 +120,16 @@ export const useRouletteStore = create<RouletteStore>((set, get) => ({
       hangups = 0
       dispatch({ type: 'ROUND_STATE', round })
     })
-    socket.on('bet:accepted', (bet: ServerBet) =>
+    socket.on('bet:accepted', (bet: ServerBet) => {
+      // On acceptance rather than on click: the sound means the chip is really down.
+      playSound('chip')
       dispatch({
         type: 'BET_ACCEPTED',
         bet: { type: bet.type, amount: bet.amount, value: bet.number },
         balance: bet.balance,
         roundId: bet.roundId,
-      }),
-    )
+      })
+    })
     socket.on('bet:rejected', ({ message }: GameError) => setError(message))
     socket.on('game:error', ({ message }: GameError) => setError(message))
     socket.on('round:result', ({ number, payout, balance }: RoundResult) =>

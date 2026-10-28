@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import type { UseFormRegisterReturn } from 'react-hook-form'
+import { Link } from 'react-router'
 import { PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH } from '@/entities/session/model/types'
+import { routes } from '@/shared/config/routes'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Input'
 import { useAuthForm, type AuthMode } from '../model/useAuthForm'
@@ -23,7 +26,8 @@ const copy = {
 
 export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>('login')
-  const { errors, pending, submit, reset, username, password } = useAuthForm(mode)
+  const { errors, pending, submit, reset, username, password, confirmsAdult, acceptsTerms } =
+    useAuthForm(mode)
   const { title, blurb, action, prompt, swap } = copy[mode]
 
   const switchMode = () => {
@@ -73,6 +77,37 @@ export function AuthForm() {
         <p className="mt-2 mb-0 text-xs text-faint">At least {PASSWORD_MIN_LENGTH} characters.</p>
       )}
 
+      {mode === 'signup' && (
+        <div className="mt-5 flex flex-col gap-3">
+          <Consent
+            field={confirmsAdult}
+            id="auth-adult"
+            disabled={pending}
+            error={errors.confirmsAdult?.message}
+          >
+            I am 18 years of age or older.
+          </Consent>
+          <Consent
+            field={acceptsTerms}
+            id="auth-terms"
+            disabled={pending}
+            error={errors.acceptsTerms?.message}
+          >
+            I accept the{' '}
+            {/* A new tab, so reading the terms does not throw away a half-filled form. */}
+            <Link
+              to={routes.terms}
+              target="_blank"
+              rel="noopener"
+              className="font-bold text-gold hover:text-gold-soft"
+            >
+              Terms of Use
+            </Link>
+            .
+          </Consent>
+        </div>
+      )}
+
       {errors.root && (
         <p className="mt-4 mb-0 text-sm text-table-red" role="alert">
           {errors.root.message}
@@ -95,6 +130,35 @@ export function AuthForm() {
         </button>
       </p>
     </form>
+  )
+}
+
+interface ConsentProps {
+  field: UseFormRegisterReturn
+  id: string
+  disabled: boolean
+  error?: string
+  children: ReactNode
+}
+
+/* Label and box are one hit target: the whole line toggles it. */
+function Consent({ field, id, disabled, error, children }: ConsentProps) {
+  return (
+    <div>
+      <label htmlFor={id} className="flex cursor-pointer items-start gap-2.5 text-sm text-muted">
+        <input
+          {...field}
+          id={id}
+          type="checkbox"
+          disabled={disabled}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className="mt-0.5 size-4 shrink-0 accent-gold"
+        />
+        <span>{children}</span>
+      </label>
+      <FieldError id={`${id}-error`} message={error} />
+    </div>
   )
 }
 

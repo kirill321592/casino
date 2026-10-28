@@ -1,26 +1,30 @@
-import { useForm, type Resolver } from 'react-hook-form'
+import { useRef } from 'react'
+import { useForm, type FieldErrors, type Resolver } from 'react-hook-form'
 import { useSession } from '@/entities/session/model/useSession'
 import { validateCredentials } from '@/entities/session/model/validateCredentials'
 import type { Credentials } from '@/entities/session/model/types'
 
 export type AuthMode = 'login' | 'signup'
 
+/* The two confirmations only exist on sign-up; sign-in leaves them unticked and unread. */
+interface AuthFormValues extends Credentials {
+  confirmsAdult: boolean
+  acceptsTerms: boolean
+}
+
 /**
  * The rules stay in the entity — this only restates their answer in the shape
  * react-hook-form expects, so there is still one definition of a valid username.
  */
-const resolver: Resolver<Credentials> = (values) => {
-  const errors = validateCredentials(values)
-  const fields = Object.entries(errors)
+function validate(values: AuthFormValues, mode: AuthMode): Record<string, string> {
+  const errors: Record<string, string> = { ...validateCredentials(values) }
 
-  if (fields.length === 0) return { values, errors: {} }
-
-  return {
-    values: {},
-    errors: Object.fromEntries(
-      fields.map(([field, message]) => [field, { type: 'validation', message }]),
-    ),
+  if (mode === 'signup') {
+    if (!values.confirmsAdult) errors.confirmsAdult = 'Confirm you are 18 or older to play.'
+    if (!values.acceptsTerms) errors.acceptsTerms = 'Accept the Terms of Use to play.'
   }
+
+  return errors
 }
 
 /**
@@ -34,9 +38,26 @@ const resolver: Resolver<Credentials> = (values) => {
  */
 export function useAuthForm(mode: AuthMode) {
   const { signIn, signUp } = useSession()
-  const form = useForm<Credentials>({
+
+  /* Read through a ref: the resolver is handed to the form once, the mode changes after. */
+  const modeRef = useRef(mode)
+  modeRef.current = mode
+
+  const resolver: Resolver<AuthFormValues> = (values) => {
+    const fields = Object.entries(validate(values, modeRef.current))
+    if (fields.length === 0) return { values, errors: {} }
+
+    return {
+      values: {},
+      errors: Object.fromEntries(
+        fields.map(([field, message]) => [field, { type: 'validation', message }]),
+      ) as FieldErrors<AuthFormValues>,
+    }
+  }
+
+  const form = useForm<AuthFormValues>({
     resolver,
-    defaultValues: { username: '', password: '' },
+    defaultValues: { username: '', password: '', confirmsAdult: false, acceptsTerms: false },
     // Nothing is wrong until you have tried; after that, corrections land as typed.
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -44,9 +65,12 @@ export function useAuthForm(mode: AuthMode) {
 
   const { clearErrors, handleSubmit, register, reset, setError } = form
 
-  const submit = handleSubmit(async (credentials) => {
+  const submit = handleSubmit(async ({ username, password }) => {
     try {
-      await (mode === 'login' ? signIn : signUp)(credentials)
+      // Validation has already insisted on both boxes for sign-up.
+      await (mode === 'login'
+        ? signIn({ username, password })
+        : signUp({ username, password, confirmsAdult: true, acceptsTerms: true }))
       // Success unmounts this screen, so nothing here has to be undone.
     } catch (cause) {
       // `root` is for a rejection that belongs to the pair, not to one field.
@@ -69,6 +93,8 @@ export function useAuthForm(mode: AuthMode) {
       onChange: forgetFormError,
     }),
     password: register('password', { onChange: forgetFormError }),
+    confirmsAdult: register('confirmsAdult', { onChange: forgetFormError }),
+    acceptsTerms: register('acceptsTerms', { onChange: forgetFormError }),
   }
 }
 

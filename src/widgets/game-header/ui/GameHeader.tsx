@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { BalanceCard } from '@/entities/session/ui/BalanceCard'
 import { SignOutButton } from '@/features/sign-out/ui/SignOutButton'
+import { SoundControl } from '@/features/sound-settings/ui/SoundControl'
 import { routes } from '@/shared/config/routes'
 
 interface GameHeaderProps {
@@ -22,7 +23,8 @@ export function GameHeader({ title, subtitle, balance }: GameHeaderProps) {
         <h1 className="m-0 text-2xl sm:text-[2rem]">{title}</h1>
         {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <SoundControl />
         <BalanceCard balance={balance} />
         <SignOutButton />
       </div>
