@@ -10,6 +10,12 @@ export interface Credentials {
   password: string
 }
 
+/** Opening an account also records the player's age confirmation and their acceptance of the terms. */
+export interface SignUpDetails extends Credentials {
+  confirmsAdult: true
+  acceptsTerms: true
+}
+
 /*
  * These mirror the server's CredentialsDto. Checking them here saves a round
  * trip and gives a better message than a 400 does; the server still decides.

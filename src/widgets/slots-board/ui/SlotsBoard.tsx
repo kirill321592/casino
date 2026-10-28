@@ -1,7 +1,10 @@
 import { useEffect, useRef, type ComponentRef } from 'react'
+import { SLOTS_SPIN_DURATION_MS } from '@/entities/slots/lib/animateReels'
 import { SlotsCanvas } from '@/entities/slots/ui/SlotsCanvas'
 import type { SlotsState } from '@/entities/slots/model/slotsReducer'
 import { SpinSlotsButton } from '@/features/spin-slots/ui/SpinSlotsButton'
+import { spinDuration } from '@/shared/lib/reducedMotion'
+import { playSound } from '@/shared/lib/sound'
 import { ResultOverlay } from '@/shared/ui/ResultOverlay'
 
 interface SlotsBoardProps {
@@ -18,8 +21,14 @@ export function SlotsBoard({ state, onSpin, onSpinComplete, onDismissResult }: S
   useEffect(() => {
     if (state.phase !== 'spinning' || state.pendingReels === null) return
     const won = state.pendingWinnings > 0
+    playSound('reels', { durationMs: spinDuration(SLOTS_SPIN_DURATION_MS) })
     void reelsRef.current?.spinToReels(state.pendingReels, won).then(onSpinComplete)
   }, [onSpinComplete, state.pendingReels, state.pendingWinnings, state.phase])
+
+  /* Wins only. Casinos stay quiet on a loss, and so does this. */
+  useEffect(() => {
+    if (state.phase === 'result' && state.lastWinnings > 0) playSound('win')
+  }, [state.phase, state.lastWinnings])
 
   return (
     <section className="card relative flex flex-col items-center justify-center gap-5 p-6 sm:p-8">

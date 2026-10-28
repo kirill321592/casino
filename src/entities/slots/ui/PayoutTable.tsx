@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import type { SlotsPaytable } from '@/shared/api/slots'
+import { formatPercent } from '@/shared/lib/formatPercent'
 
 interface PayoutTableProps {
   paytable: SlotsPaytable
@@ -38,6 +39,9 @@ export const PayoutTable = memo(function PayoutTable({ paytable }: PayoutTablePr
         ))}
         <li>Any pair — {pairRange}×</li>
       </ul>
+      <p className="mt-2 mb-0 text-xs text-faint">
+        Return to player: <span className="tabular-nums">{formatPercent(paytable.rtp)}</span>
+      </p>
     </div>
   )
 })

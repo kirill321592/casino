@@ -2,13 +2,18 @@ import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from 'r
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router'
 import { SessionProvider } from '@/entities/session/model/SessionProvider'
 import { useSession } from '@/entities/session/model/useSession'
+import { RealityCheck } from '@/features/reality-check/ui/RealityCheck'
 import { AuthPage } from '@/pages/auth/ui/AuthPage'
 import { HomePage, type GameId } from '@/pages/home/ui/HomePage'
+import { ResponsibleGamingPage } from '@/pages/responsible-gaming/ui/ResponsibleGamingPage'
+import { RulesPage } from '@/pages/rules/ui/RulesPage'
+import { TermsPage } from '@/pages/terms/ui/TermsPage'
 import { routes } from '@/shared/config/routes'
 import { whenIdle } from '@/shared/lib/schedule'
 import { Button, buttonClassName } from '@/shared/ui/Button'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { ErrorScreen } from '@/shared/ui/ErrorScreen'
+import { SiteFooter } from '@/widgets/site-footer/ui/SiteFooter'
 import './styles/global.css'
 
 /*
@@ -40,7 +45,21 @@ export function App() {
   )
 }
 
+/* Rules and terms are readable by anyone; everything else waits on an account. */
 function Root() {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <Routes>
+        <Route path={routes.rules} element={<RulesPage />} />
+        <Route path={routes.terms} element={<TermsPage />} />
+        <Route path="*" element={<SignedIn />} />
+      </Routes>
+      <SiteFooter />
+    </div>
+  )
+}
+
+function SignedIn() {
   const { user, status } = useSession()
 
   if (status === 'loading') {
@@ -66,12 +85,16 @@ function Casino() {
   }, [inLobby])
 
   return (
-    <Routes>
-      <Route path={routes.lobby} element={<HomePage onPreload={preload} />} />
-      <Route path={routes.roulette} element={<Game key="roulette" id="roulette" />} />
-      <Route path={routes.slots} element={<Game key="slots" id="slots" />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <RealityCheck />
+      <Routes>
+        <Route path={routes.lobby} element={<HomePage onPreload={preload} />} />
+        <Route path={routes.roulette} element={<Game key="roulette" id="roulette" />} />
+        <Route path={routes.slots} element={<Game key="slots" id="slots" />} />
+        <Route path={routes.responsibleGaming} element={<ResponsibleGamingPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   )
 }
 

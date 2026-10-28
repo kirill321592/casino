@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { onUnauthorized } from '@/shared/api/unauthorized'
 import * as api from '../api/session'
 import { SessionContext, type SessionStatus } from './sessionContext'
-import type { AuthUser, Credentials } from './types'
+import type { AuthUser, Credentials, SignUpDetails } from './types'
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -31,8 +31,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUser(await api.signIn(credentials))
   }, [])
 
-  const signUp = useCallback(async (credentials: Credentials) => {
-    setUser(await api.signUp(credentials))
+  const signUp = useCallback(async (details: SignUpDetails) => {
+    setUser(await api.signUp(details))
   }, [])
 
   const signOut = useCallback(() => {
